@@ -64,14 +64,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
       print(e);
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Recording Screen"),
       ),
-      body: Column(
+      body: _buildCameraPreview(), /*Column(
         children: [
           Expanded(
             child: Center(
@@ -86,7 +86,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
               ),
             ),
         ],
-      ),
+      ),*/
       floatingActionButton: FloatingActionButton(
         child: Icon(_controller.value.isRecordingVideo
             ? Icons.stop
@@ -95,4 +95,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
       ),
     );
   }
+  Widget _buildCameraPreview() {
+  if (_controller == null || !_controller.value.isInitialized) {
+    return Container();
+  }
+  return AspectRatio(
+    aspectRatio: _controller.value.aspectRatio,
+    child: CameraPreview(_controller),
+  );
 }
+
+}
+
+
+

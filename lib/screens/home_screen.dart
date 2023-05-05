@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:hoopster/screens/recording_screen.dart';
+import 'package:hoopster/screens/recording_screen2.dart';
 import 'package:hoopster/screens/stats_screen.dart';
 import 'package:hoopster/screens/settings_screen.dart';
 import 'package:hoopster/screens/about_screen.dart';
+import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
+
+//late List<CameraDescription> _cameras;
 
 class HomeScreen extends StatelessWidget {
-  final firstCamera;
+  //final List<CameraDescription>firstCamera;
 
-  const HomeScreen(this.firstCamera);
+  const HomeScreen(/*this.firstCamera*/);
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,12 +23,11 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _buildButton(
-                context,
-                'Start Recording',
-                RecordingScreen(
+            _buildButton(context, 'Start Recording', CameraApp(/*firstCamera*/)
+                /*RecordingScreen(
                   camera: firstCamera,
-                )),
+                )*/
+                ),
             _buildButton(context, 'View Stats', StatsScreen()),
             _buildButton(context, 'Settings', SettingsScreen()),
             _buildButton(context, 'About', AboutScreen()),

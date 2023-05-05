@@ -2,16 +2,18 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:hoopster/screens/home_screen.dart';
 
-void main() async {
+late List<CameraDescription> cameras;
+
+Future<void> main() async  {
   WidgetsFlutterBinding.ensureInitialized();
-  final cameras = await availableCameras();
-  final firstCamera = cameras.first;
-  runApp(MyApp(firstCamera));
+  cameras = await availableCameras();
+  //final firstCamera = cameras.first;
+  runApp(MyApp(/*cameras*/));
 }
 
 class MyApp extends StatelessWidget {
-  final firstCamera;
-  MyApp(CameraDescription this.firstCamera);
+  //final firstCamera;
+  MyApp(/*List<CameraDescription> this.firstCamera*/);
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +22,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: HomeScreen(firstCamera),
+      home: HomeScreen(/*firstCamera*/),
     );
   }
 }
