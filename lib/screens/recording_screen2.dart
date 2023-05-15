@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hoopster/main.dart';
 
 //late List<CameraDescription> _cameras;
@@ -104,12 +105,10 @@ class _CameraAppState extends State<CameraApp> {
   @override
   Widget build(BuildContext context) {
     if (!controller.value.isInitialized) {
-      print(controller.value.isInitialized);
       return Container(
         color: Color.fromARGB(255, 255, 0, 0),
       );
     }
-    print(controller.value.isInitialized);
     return Scaffold(
       appBar: AppBar(
         title: Text("Recording Screen"),
