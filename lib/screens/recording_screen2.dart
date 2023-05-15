@@ -38,6 +38,7 @@ class _CameraAppState extends State<CameraApp> {
   void initState() {
     super.initState();
     controller = CameraController(cameras[0], ResolutionPreset.max);
+    controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
     _initializeControllerFuture = controller.initialize().then((_) {
       if (!mounted) {
         return;
