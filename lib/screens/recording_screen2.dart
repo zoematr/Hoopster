@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hoopster/main.dart';
 
 //late List<CameraDescription> _cameras;
@@ -33,10 +34,17 @@ class _CameraAppState extends State<CameraApp> {
   _CameraAppState(/*this.camera_*/) {
     //initState();
   }
+  void processVideo(String videoPath) {
+    //this badboy is gonna handle our video editing
+    print('Video path: $videoPath');
+  }
+
   @override
   void initState() {
     super.initState();
     controller = CameraController(cameras[0], ResolutionPreset.max);
+    controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
+
     _initializeControllerFuture = controller.initialize().then((_) {
       if (!mounted) {
         return;
@@ -63,6 +71,9 @@ class _CameraAppState extends State<CameraApp> {
         setState(() {
           _videoPath = path as String;
         });
+
+        processVideo(
+            _videoPath); // Pass the video path to the processing function
       } else {
         await _initializeControllerFuture;
         final now = DateTime.now();
@@ -104,12 +115,10 @@ class _CameraAppState extends State<CameraApp> {
   @override
   Widget build(BuildContext context) {
     if (!controller.value.isInitialized) {
-      print(controller.value.isInitialized);
       return Container(
         color: Color.fromARGB(255, 255, 0, 0),
       );
     }
-    print(controller.value.isInitialized);
     return Scaffold(
       appBar: AppBar(
         title: Text("Recording Screen"),

@@ -1,14 +1,20 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hoopster/screens/home_screen.dart';
 
 late List<CameraDescription> cameras;
 
-Future<void> main() async  {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
+  // Step 3
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]).then((value) => runApp(MyApp()));
+
   //final firstCamera = cameras.first;
-  runApp(MyApp(/*cameras*/));
 }
 
 class MyApp extends StatelessWidget {
