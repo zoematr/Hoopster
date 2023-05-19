@@ -10,8 +10,8 @@ Future<void> main() async {
   cameras = await availableCameras();
   // Step 3
   SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
+   // DeviceOrientation.landscapeLeft,
+    //DeviceOrientation.landscapeRight,
   ]).then((value) => runApp(MyApp()));
 
   //final firstCamera = cameras.first;

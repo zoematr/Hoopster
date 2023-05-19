@@ -3,9 +3,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hoopster/main.dart';
+import 'package:opencv_4/opencv_4.dart';
+import 'dart:typed_data';
+import 'package:image/image.dart' as img;
+import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+
+
 
 //late List<CameraDescription> _cameras;
 int i = 0;
+late CameraImage _cameraImage;
 
 /*Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,10 +51,12 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void initState() {
     super.initState();
-    controller = CameraController(cameras[0], ResolutionPreset.max);
-    controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
-
+    controller = CameraController(cameras[0], ResolutionPreset.max, imageFormatGroup:ImageFormatGroup.bgra8888 );
+    //controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
     _initializeControllerFuture = controller.initialize().then((_) {
+    controller.startImageStream((image) => {/*print("eo")*/_cameraImage = image});
+
+
       if (!mounted) {
         return;
       }
@@ -62,6 +73,7 @@ class _CameraAppState extends State<CameraApp> {
         }
       }
     });
+    
   }
 
   Future<void> _onRecordButtonPressed() async {
@@ -112,6 +124,20 @@ class _CameraAppState extends State<CameraApp> {
     super.dispose();
   }
 
+  void startStreaming() {}
+
+  void capture() async {
+    if (_cameraImage != null) {
+      img.Image image = img.Image.fromBytes(_cameraImage.width,
+          _cameraImage.height, _cameraImage.planes[0].bytes,
+          format: img.Format.bgra);
+      Uint8List list = Uint8List.fromList(img.encodeJpg(image));
+      await ImageGallerySaver.saveImage(list); 
+      //_imageList.add(list);
+      //_imageList.refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!controller.value.isInitialized) {
@@ -127,11 +153,12 @@ class _CameraAppState extends State<CameraApp> {
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.stop),
         onPressed: () => {
-          if (i % 2 == 0)
+          capture()
+          /*if (i % 2 == 0)
             {_onRecordButtonPressed()}
           else
             {stopVideoRecording()},
-          i++
+          i++*/
         },
       ),
     );
