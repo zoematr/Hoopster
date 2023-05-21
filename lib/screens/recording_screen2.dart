@@ -3,18 +3,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hoopster/main.dart';
-import 'package:opencv_4/opencv_4.dart';
+//import 'package:opencv_4/opencv_4.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
-import 'package:get/get.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+//import 'package:get/get.dart';
+//import 'package:permission_handler/permission_handler.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:flutter_image/flutter_image.dart' as flImage;
-
+//import 'package:flutter_image/flutter_image.dart' as flImage;
 
 //late List<CameraDescription> _cameras;
 int i = 0;
 late CameraImage _cameraImage;
+int counter = 0;
+String lastSaved = "";
 
 /*Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -129,6 +131,17 @@ class _CameraAppState extends State<CameraApp> {
 
   //void startStreaming() {}
 
+  //void save(List<int> _imageBytes){}
+  Future<void> _saveImage(List<int> _imageBytes) async {
+    counter++;
+    final directory = await getApplicationDocumentsDirectory();
+    final imagePath = '${directory.path}/frame${counter}.png';
+    lastSaved = imagePath;
+    final imageFile = File(imagePath);
+    await imageFile.writeAsBytes(_imageBytes);
+    print('Image saved to: $imagePath');
+  }
+
   void capture() async {
     if (_cameraImage != null) {
       Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
@@ -152,21 +165,23 @@ class _CameraAppState extends State<CameraApp> {
       }*/
       //print("done");
       //print(colored.length);
-     // List<int> planes = _cameraImage.planes[0].bytes +
-       //   _cameraImage.planes[1].bytes +
-         // _cameraImage.planes[2].bytes;
+      // List<int> planes = _cameraImage.planes[0].bytes +
+      //   _cameraImage.planes[1].bytes +
+      // _cameraImage.planes[2].bytes;
       //print(planes.length);
       img.Image image = img.Image.fromBytes(
         _cameraImage.width,
         _cameraImage.height,
-        _cameraImage.planes[0].bytes, //_cameraImage.planes[0].bytes+_cameraImage.planes[1].bytes+_cameraImage.planes[2].bytes,
+        _cameraImage.planes[0]
+            .bytes, //_cameraImage.planes[0].bytes+_cameraImage.planes[1].bytes+_cameraImage.planes[2].bytes,
         format: img.Format.luminance,
       );
+      img.Image Rimage = img.copyRotate(image, 90);
+      _saveImage(Rimage.data);
 
-      print(_cameraImage.planes.length);
-
-      print(image.height);
-      Uint8List list = Uint8List.fromList(img.encodePng(image));
+      //print(_cameraImage.planes.length); /data/user/0/com.example.hoopster/app_flutter/frame1.png
+      //print(image.height);
+      Uint8List list = Uint8List.fromList(img.encodePng(Rimage));
       //print(list.length);
       await ImageGallerySaver.saveImage(list);
       //_imageList.add(list);
@@ -176,26 +191,29 @@ class _CameraAppState extends State<CameraApp> {
 
   @override
   Widget build(BuildContext context) {
+
     if (!controller.value.isInitialized) {
       return Container(
         color: Color.fromARGB(255, 255, 0, 0),
       );
     }
     return Scaffold(
-      appBar: AppBar(
+      /*appBar: AppBar(
         title: Text("Recording Screen"),
-      ),
-      body: CameraPreview(controller),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.stop),
-        onPressed: () => {
+      ),*/
+      body: Container(child: Column(children: [SizedBox (child:CameraPreview(controller)),
+      Expanded(child:Container(
+        color: Color.fromARGB(255, 0, 0, 0),
+        child: Center(child:GestureDetector(
+        child: Container(
+          height: 80,
+          width: 80,
+          decoration: BoxDecoration(color: Color.fromARGB(255, 255, 255, 255),borderRadius: BorderRadius.all(Radius.circular(60)))),
+      onTap: () => {
           capture()
-          /*if (i % 2 == 0)
-            {_onRecordButtonPressed()}
-          else
-            {stopVideoRecording()},
-          i++*/
-        },
+        }) ,)
+      ))]) ,
+
       ),
     );
     // return Scaffold(body: CameraPreview(controller));
