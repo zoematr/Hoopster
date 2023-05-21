@@ -9,10 +9,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
   // Step 3
-  SystemChrome.setPreferredOrientations([
-   // DeviceOrientation.landscapeLeft,
-    //DeviceOrientation.landscapeRight,
-  ]).then((value) => runApp(MyApp()));
+  runApp(MyApp());
 
   //final firstCamera = cameras.first;
 }

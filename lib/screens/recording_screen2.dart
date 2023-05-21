@@ -9,7 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-
+import 'package:flutter_image/flutter_image.dart' as flImage;
 
 
 //late List<CameraDescription> _cameras;
@@ -51,11 +51,15 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void initState() {
     super.initState();
-    controller = CameraController(cameras[0], ResolutionPreset.max, imageFormatGroup:ImageFormatGroup.bgra8888 );
+    controller = CameraController(
+      cameras[0],
+      ResolutionPreset.max,
+    );
+
     //controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
     _initializeControllerFuture = controller.initialize().then((_) {
-    controller.startImageStream((image) => {/*print("eo")*/_cameraImage = image});
-
+      controller
+          .startImageStream((image) => {/*print("eo")*/ _cameraImage = image});
 
       if (!mounted) {
         return;
@@ -73,7 +77,6 @@ class _CameraAppState extends State<CameraApp> {
         }
       }
     });
-    
   }
 
   Future<void> _onRecordButtonPressed() async {
@@ -124,15 +127,48 @@ class _CameraAppState extends State<CameraApp> {
     super.dispose();
   }
 
-  void startStreaming() {}
+  //void startStreaming() {}
 
   void capture() async {
     if (_cameraImage != null) {
-      img.Image image = img.Image.fromBytes(_cameraImage.width,
-          _cameraImage.height, _cameraImage.planes[0].bytes,
-          format: img.Format.bgra);
-      Uint8List list = Uint8List.fromList(img.encodeJpg(image));
-      await ImageGallerySaver.saveImage(list); 
+      Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
+      print("doing");
+      int b = 0;
+      //int y = 0;
+      /*for (int x in _cameraImage.planes[0].bytes) {
+        //String s =${_cameraImage.planes[0].bytes[x]}${_cameraImage.planes[1].bytes[x]}${_cameraImage.planes[2].bytes[x]}";
+        //int i = int.parse(s);
+        //print("doing");
+        //colored[x] = i;
+        for (int y = 0; y < 3; y++) {
+          colored[b] = _cameraImage.planes[y].bytes[x];
+          b++;
+          //b++;
+          //if (_cameraImage.planes[0].bytes.length % b == 0) {
+          //y++;
+          //}
+          //colored[b - 1] = _cameraImage.planes[y].bytes[x];
+        }
+      }*/
+      //print("done");
+      //print(colored.length);
+     // List<int> planes = _cameraImage.planes[0].bytes +
+       //   _cameraImage.planes[1].bytes +
+         // _cameraImage.planes[2].bytes;
+      //print(planes.length);
+      img.Image image = img.Image.fromBytes(
+        _cameraImage.width,
+        _cameraImage.height,
+        _cameraImage.planes[0].bytes, //_cameraImage.planes[0].bytes+_cameraImage.planes[1].bytes+_cameraImage.planes[2].bytes,
+        format: img.Format.luminance,
+      );
+
+      print(_cameraImage.planes.length);
+
+      print(image.height);
+      Uint8List list = Uint8List.fromList(img.encodePng(image));
+      //print(list.length);
+      await ImageGallerySaver.saveImage(list);
       //_imageList.add(list);
       //_imageList.refresh();
     }
