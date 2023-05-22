@@ -191,7 +191,6 @@ class _CameraAppState extends State<CameraApp> {
 
   @override
   Widget build(BuildContext context) {
-
     if (!controller.value.isInitialized) {
       return Container(
         color: Color.fromARGB(255, 255, 0, 0),
@@ -201,19 +200,25 @@ class _CameraAppState extends State<CameraApp> {
       /*appBar: AppBar(
         title: Text("Recording Screen"),
       ),*/
-      body: Container(child: Column(children: [SizedBox (child:CameraPreview(controller)),
-      Expanded(child:Container(
-        color: Color.fromARGB(255, 0, 0, 0),
-        child: Center(child:GestureDetector(
-        child: Container(
-          height: 80,
-          width: 80,
-          decoration: BoxDecoration(color: Color.fromARGB(255, 255, 255, 255),borderRadius: BorderRadius.all(Radius.circular(60)))),
-      onTap: () => {
-          capture()
-        }) ,)
-      ))]) ,
-
+      body: Container(
+        child: Column(children: [
+          SizedBox(child: CameraPreview(controller)),
+          Expanded(
+              child: Container(
+                  color: Color.fromARGB(255, 91, 91, 91),
+                  child: Center(
+                    child: GestureDetector(
+                        child: Container(
+                            height: 80,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              boxShadow: [BoxShadow(color: Color.fromARGB(80, 0, 0, 0),spreadRadius: 5,blurRadius: 10)],
+                                color: Color.fromARGB(255, 255, 255, 255),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(60)))),
+                        onTap: () => {capture()}),
+                  )))
+        ]),
       ),
     );
     // return Scaffold(body: CameraPreview(controller));

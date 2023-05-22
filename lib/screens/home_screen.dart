@@ -16,7 +16,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Your App'),
+        title: Text('Hoopster'),
+        backgroundColor: Color.fromARGB(255, 0, 0, 0),
       ),
       body: Center(
         child: Column(
@@ -41,6 +42,7 @@ class HomeScreen extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 5.0),
       child: ElevatedButton(
+        
         onPressed: () {
           Navigator.push(
             context,
@@ -49,6 +51,7 @@ class HomeScreen extends StatelessWidget {
         },
         child: Text(text),
         style: ElevatedButton.styleFrom(
+          backgroundColor: Color.fromARGB(255, 0, 0, 0),
           padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
           textStyle: TextStyle(fontSize: 20),
         ),
