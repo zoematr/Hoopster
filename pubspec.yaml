@@ -43,6 +43,7 @@ dependencies:
   image_gallery_saver: ^1.7.1
   permission_handler: ^10.2.0
   flutter_image: ^4.1.5
+  fl_chart: ^0.62.0
 
 dev_dependencies:
   flutter_test:
@@ -60,11 +61,14 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  assets:
+        ["Assets\\BasketButton.png"]
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+   
 
   # To add assets to your application, add an assets section, like this:
   # assets:

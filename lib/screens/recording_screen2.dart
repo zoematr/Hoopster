@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hoopster/main.dart';
+import 'package:hoopster/screens/home_screen.dart';
 //import 'package:opencv_4/opencv_4.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
@@ -54,7 +55,7 @@ class _CameraAppState extends State<CameraApp> {
   void initState() {
     super.initState();
     controller = CameraController(
-      cameras[0],
+      cameras[1],
       ResolutionPreset.max,
     );
 
@@ -212,10 +213,14 @@ class _CameraAppState extends State<CameraApp> {
                             height: 80,
                             width: 80,
                             decoration: BoxDecoration(
-                              boxShadow: [BoxShadow(color: Color.fromARGB(80, 0, 0, 0),spreadRadius: 5,blurRadius: 10)],
-                                color: Color.fromARGB(255, 255, 255, 255),
+                              image: DecorationImage(image: AssetImage(basketButton),
+                              fit: BoxFit.fill),
+
+
+                              boxShadow: [BoxShadow(color: Color.fromARGB(80, 0, 0, 0),spreadRadius: 1,blurRadius:5)],
+                                color: Color.fromARGB(0, 255, 255, 255),
                                 borderRadius:
-                                    BorderRadius.all(Radius.circular(60)))),
+                                    BorderRadius.all(Radius.circular(30)))),
                         onTap: () => {capture()}),
                   )))
         ]),
