@@ -10,10 +10,18 @@ import 'package:hoopster/statsObjects.dart';
 //late List<CameraDescription> _cameras;
 double h = 0;
 double w = 0;
-List<int> bo = [1, 2, 3, 4, 5, 6, 7];
-statsObjects Graph1 = statsObjects(bo);
-statsObjects Graph2 = statsObjects(bo);
-statsObjects Graph3 = statsObjects(bo);
+//List<int> bo = [1, 2, 3, 4, 5, 6, 7];
+List<List<double>> tr0 = [
+  [20.03, 02.04, 02.04],
+  [5, 9],
+  [3, 1],
+  [9, 4]
+];
+
+List<List<double>> tr1 = [[01.04, 02.04, 02.04],[92,78,32]];
+
+statsObjects Graph1 = statsObjects(tr0, "shots");
+statsObjects Graph2 = statsObjects(tr1, "accuracy");
 
 String basketButton = "Assets\\BasketButton.png";
 
@@ -28,7 +36,8 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 93, 70, 94),
       appBar: AppBar(
-        title: Text('Hoopster'),
+        title: Text("Hoopster",
+            style: TextStyle(fontFamily: 'Dogica', letterSpacing: 0.2)),
         backgroundColor: Color.fromARGB(255, 0, 0, 0),
       ),
       body: Center(
@@ -43,11 +52,32 @@ class HomeScreen extends StatelessWidget {
                   child: _buildButton(
                       context, 'Start Recording', CameraApp(/*firstCamera*/)))),
           Container(
-            width: w,
-            height: (h / 2) - 95 / 2,
-            color: Color.fromARGB(0, 255, 0, 0),
-            child: ListView(children: [Graph1, Graph2, Graph3]),
-          )
+              decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                        color: Color.fromARGB(151, 0, 0, 0),
+                        blurRadius: 8,
+                        spreadRadius: 1)
+                  ],
+                  color: Color.fromARGB(255, 57, 57, 57),
+                  borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(5),
+                      topLeft: Radius.circular(5),
+                      bottomLeft: Radius.circular(5),
+                      bottomRight: Radius.circular(5))),
+              width: w - 20,
+              height: (h / 2) - 110 / 2,
+              child: Column(children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(0, 6.5, 0, 0),
+                  child: Text("Stats",
+                      style: TextStyle(
+                          fontFamily: "Dogica",
+                          fontSize: 15,
+                          color: Color.fromARGB(255, 255, 255, 255))),
+                ),
+                Expanded(child: ListView(children: [Graph1, Graph2]))
+              ]))
         ],
       )),
     );
@@ -61,13 +91,17 @@ class HomeScreen extends StatelessWidget {
             height: 200,
             width: 200,
             decoration: BoxDecoration(
-             image: DecorationImage(
-          image: AssetImage(basketButton),
-          fit: BoxFit.fill,
-        ),
-                color: Color.fromARGB(0, 255, 255, 255),
-                boxShadow: [BoxShadow(color: Color.fromARGB(74, 0, 0, 0),
-                blurRadius: 7,spreadRadius: 0)],
+                image: DecorationImage(
+                  image: AssetImage(basketButton),
+                  fit: BoxFit.fill,
+                ),
+                color: Color.fromARGB(0, 93, 70, 94),
+                boxShadow: [
+                  BoxShadow(
+                      color: Color.fromARGB(74, 0, 0, 0),
+                      blurRadius: 7,
+                      spreadRadius: 0)
+                ],
                 borderRadius: BorderRadius.all(Radius.circular(80))),
           ),
           onTap: () {

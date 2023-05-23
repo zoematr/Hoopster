@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -18,6 +20,8 @@ int i = 0;
 late CameraImage _cameraImage;
 int counter = 0;
 String lastSaved = "";
+int Hit = 0;
+int Miss = 0;
 
 /*Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -206,22 +210,52 @@ class _CameraAppState extends State<CameraApp> {
           SizedBox(child: CameraPreview(controller)),
           Expanded(
               child: Container(
-                  color: Color.fromARGB(255, 91, 91, 91),
-                  child: Center(
-                    child: GestureDetector(
-                        child: Container(
-                            height: 80,
-                            width: 80,
-                            decoration: BoxDecoration(
-                              image: DecorationImage(image: AssetImage(basketButton),
-                              fit: BoxFit.fill),
-
-
-                              boxShadow: [BoxShadow(color: Color.fromARGB(80, 0, 0, 0),spreadRadius: 1,blurRadius:5)],
-                                color: Color.fromARGB(0, 255, 255, 255),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(30)))),
-                        onTap: () => {capture()}),
+                  color: Color.fromARGB(255, 93, 70, 94),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        Hit.toString(),
+                        style: TextStyle(
+                            fontFamily: "Dogica",
+                            fontSize: 60,
+                            color: Color.fromARGB(255, 0, 255, 0)),
+                      ),
+                      Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              (w / 3) - 65, 0, (w / 3) - 65, 0),
+                          child: GestureDetector(
+                              child: Container(
+                                  height: 80,
+                                  width: 80,
+                                  decoration: BoxDecoration(
+                                      image: DecorationImage(
+                                          image: AssetImage(basketButton),
+                                          fit: BoxFit.fill),
+                                      boxShadow: [
+                                        BoxShadow(
+                                            color: Color.fromARGB(80, 0, 0, 0),
+                                            spreadRadius: 1,
+                                            blurRadius: 5)
+                                      ],
+                                      color: Color.fromARGB(0, 255, 255, 255),
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(30)))),
+                              onTap: () => {
+                                    capture(),
+                                    setState(() {
+                                      Miss++;
+                                      Hit++;
+                                    })
+                                  })),
+                      Text(
+                        Miss.toString(),
+                        style: TextStyle(
+                            fontFamily: "Dogica",
+                            fontSize: 60,
+                            color: Color.fromARGB(255, 255, 0, 0)),
+                      ),
+                    ],
                   )))
         ]),
       ),
