@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hoopster/PermanentStorage.dart';
+import 'package:hoopster/main.dart';
 import 'package:hoopster/screens/recording_screen2.dart';
 import 'package:hoopster/screens/stats_screen.dart';
 import 'package:hoopster/screens/settings_screen.dart';
@@ -18,19 +20,45 @@ List<List<double>> tr0 = [
   [9, 4]
 ];
 
-List<List<double>> tr1 = [[01.04, 02.04, 02.04],[92,78,32]];
+List<List<double>> tr1 = [
+  [01.04, 02.04, 02.04],
+  [92, 78, 32]
+];
+statsObjects Graph1 = statsObjects([], "");
+statsObjects Graph2 = statsObjects([], "");
 
-statsObjects Graph1 = statsObjects(tr0, "shots");
-statsObjects Graph2 = statsObjects(tr1, "accuracy");
+Widget globalUpdate() {
+  Graph1 = statsObjects(parseForgraph(allSessions), "shots");
+  Graph2 = statsObjects(parseForgraph(allSessions), "shots");
+  List<statsObjects> GraphList = [];
+  GraphList.add(Graph1);
+  GraphList.add(Graph2);
+
+  return ListView.builder(
+    itemCount: 2,
+    itemBuilder: (context, index) {
+      return GraphList[index];
+    },
+  );
+}
 
 String basketButton = "Assets\\BasketButton.png";
+Widget lView = globalUpdate();
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
+  HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   //final List<CameraDescription>firstCamera;
 
-  const HomeScreen(/*this.firstCamera*/);
+  _HomeScreenState(/*this.firstCamera*/);
   @override
   Widget build(BuildContext context) {
+    globalUpdate();
     w = MediaQuery.of(context).size.width;
     h = MediaQuery.of(context).size.height;
     return Scaffold(
@@ -76,7 +104,7 @@ class HomeScreen extends StatelessWidget {
                           fontSize: 15,
                           color: Color.fromARGB(255, 255, 255, 255))),
                 ),
-                Expanded(child: ListView(children: [Graph1, Graph2]))
+                Expanded(child: lView=globalUpdate())
               ]))
         ],
       )),

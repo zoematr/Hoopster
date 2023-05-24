@@ -1,9 +1,10 @@
 import 'dart:ffi';
-
+import 'dart:math';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/main.dart';
 import 'package:hoopster/screens/home_screen.dart';
 //import 'package:opencv_4/opencv_4.dart';
@@ -148,6 +149,14 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   void capture() async {
+    int _1 = Random().nextInt(20);
+    int _2 = Random().nextInt(20);
+    DateTime n = DateTime.now();
+    setState(() {
+      allSessions.add(Session(n, _1, _2));
+      lView = globalUpdate();
+    });
+
     if (_cameraImage != null) {
       Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
       print("doing");
