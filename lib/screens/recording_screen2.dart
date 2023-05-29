@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/main.dart';
+import 'package:tflite/tflite.dart';
 import 'package:hoopster/screens/home_screen.dart';
 //import 'package:opencv_4/opencv_4.dart';
 import 'dart:typed_data';
@@ -57,13 +58,13 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   @override
-  void initState() {
+  void initState() async {
     super.initState();
     controller = CameraController(
       cameras[1],
       ResolutionPreset.max,
     );
-
+    var model = await Tflite.loadModel(model: 'Assets/model.tflite');
     //controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
     _initializeControllerFuture = controller.initialize().then((_) {
       controller

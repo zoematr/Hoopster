@@ -8,7 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 late List<CameraDescription> cameras;
 
 SharedPreferences? prefs;
-List<Session> allSessions = [Session(DateTime.now(), 10, 3),Session(DateTime.now(), 2, 8)];
+List<Session> allSessions = [
+  Session(DateTime.now(), 10, 3),
+  Session(DateTime.now(), 2, 8)
+];
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +19,9 @@ Future<void> main() async {
   if (!prefs!.containsKey("Session")) {
     await prefs!.setStringList("Session", <String>[]);
   }
- 
+
   allSessions += getAll();
+  print(allSessions);
   cameras = await availableCameras();
   // Step 3
   runApp(MyApp());
