@@ -18,6 +18,8 @@ int counter = 0;
 String lastSaved = "";
 int Hit = 0;
 int Miss = 0;
+var height;
+var width;
 
 class CameraApp extends StatefulWidget {
   const CameraApp({Key? key}) : super(key: key);
@@ -32,17 +34,18 @@ class _CameraAppState extends State<CameraApp> {
   String _videoPath = '';
 
   @override
-  void initState() {
+  void initState() async {
     super.initState();
     controller = CameraController(
       cameras[1],
       ResolutionPreset.medium,
     );
 
+    final interpreter = await loadModel;
     _initializeControllerFuture = controller.initialize().then((_) {
       controller.startImageStream((image) {
         _cameraImage = image;
-        processCameraFrame(image); // Process each camera frame
+        processCameraFrame(image, interpreter); // Process each camera frame
       });
 
       if (!mounted) {
@@ -65,25 +68,23 @@ class _CameraAppState extends State<CameraApp> {
     loadModel(); // Load the TFLite model
   }
 
-  void loadModel() async {
-    final interpreter =
-        await tfl.Interpreter.fromAsset('assets/your_model.tflite');
+  Future<tfl.Interpreter> loadModel() async {
+    final interpreter = await tfl.Interpreter.fromAsset('Assets/model.tflite');
+    return interpreter;
   }
 
-  Future<void> processCameraFrame(CameraImage image) async {
+  Future<void> processCameraFrame(CameraImage image, interpreter) async {
     try {
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
 
       // Create an instance of interpreter
-      final interpreter =
-          await tfl.Interpreter.fromAsset('Assets/model.tflite');
 
       // Define the number of results you expect from the model
-      const int numResults = 10;
+      const int numResults = 1;
 
       // Create output tensor. Assuming model has single output of shape [1, numResults]
-      var output = List.filled(1 * numResults, 0).reshape([1, numResults]);
+      var output = List.filled(1 * numResults, 4); //.reshape([1, numResults]);
 
       // Run inference on the frame
       interpreter.runForMultipleInputs(convertedImage, {0: output});
@@ -221,8 +222,14 @@ class _CameraAppState extends State<CameraApp> {
       Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
       print("doing");
       int b = 0;
-
-      img.Image image = convertCameraImage(_cameraImage);
+      img.Image image = _cameraImage as img.Image;
+      var input = [
+        [
+          1,
+          image.height,
+        ]
+      ];
+      //img.Image image = convertCameraImage(_cameraImage);
       img.Image Rimage = img.copyRotate(image, 90);
       _saveImage(Rimage.data);
 
@@ -237,12 +244,8 @@ class _CameraAppState extends State<CameraApp> {
       // _saveImage(Rimage.getBytes(format: img.Format.rgb));
 
       // Run inference on the converted image
-      List<dynamic>? output = await Tflite.runModelOnBinary(
-        binary: Rimage.getBytes(format: img.Format.rgb),
-      );
 
       // Process the inference results
-      processInferenceResults(output!);
     }
   }
 
