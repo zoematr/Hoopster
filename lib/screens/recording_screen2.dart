@@ -3,21 +3,15 @@ import 'dart:math';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:hoopster/PermanentStorage.dart';
-import 'package:hoopster/main.dart';
-import 'package:tflite/tflite.dart';
-import 'package:hoopster/screens/home_screen.dart';
-//import 'package:opencv_4/opencv_4.dart';
+import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
-import 'package:path_provider/path_provider.dart';
-//import 'package:get/get.dart';
-//import 'package:permission_handler/permission_handler.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-//import 'package:flutter_image/flutter_image.dart' as flImage;
+import 'package:path_provider/path_provider.dart';
 
-//late List<CameraDescription> _cameras;
+import '../main.dart';
+import 'home_screen.dart';
+
 int i = 0;
 late CameraImage _cameraImage;
 int counter = 0;
@@ -25,50 +19,31 @@ String lastSaved = "";
 int Hit = 0;
 int Miss = 0;
 
-/*Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  _cameras = await availableCameras();
-  runApp(const CameraApp());
-}*/
-
-/// CameraApp is the Main Application.
 class CameraApp extends StatefulWidget {
-  //final List<CameraDescription> camera_;
-
-  /// Default Constructor
-  const CameraApp(/*this.camera_*/ {super.key});
+  const CameraApp({Key? key}) : super(key: key);
 
   @override
-  State<CameraApp> createState() => _CameraAppState(/*this.camera_*/);
+  State<CameraApp> createState() => _CameraAppState();
 }
 
 class _CameraAppState extends State<CameraApp> {
   late CameraController controller;
   late Future<void> _initializeControllerFuture;
   String _videoPath = '';
-  //List<CameraDescription> camera_;
-
-  _CameraAppState(/*this.camera_*/) {
-    //initState();
-  }
-  void processVideo(String videoPath) {
-    //this badboy is gonna handle our video editing
-    print('Video path: $videoPath');
-  }
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
     controller = CameraController(
       cameras[1],
-      ResolutionPreset.max,
+      ResolutionPreset.medium,
     );
-    var model = await Tflite.loadModel(model: 'Assets/model.tflite');
-    //controller.lockCaptureOrientation(DeviceOrientation.landscapeLeft);
+
     _initializeControllerFuture = controller.initialize().then((_) {
-      controller
-          .startImageStream((image) => {/*print("eo")*/ _cameraImage = image});
+      controller.startImageStream((image) {
+        _cameraImage = image;
+        processCameraFrame(image); // Process each camera frame
+      });
 
       if (!mounted) {
         return;
@@ -86,6 +61,99 @@ class _CameraAppState extends State<CameraApp> {
         }
       }
     });
+
+    loadModel(); // Load the TFLite model
+  }
+
+  void loadModel() async {
+    final interpreter =
+        await tfl.Interpreter.fromAsset('assets/your_model.tflite');
+  }
+
+  Future<void> processCameraFrame(CameraImage image) async {
+    try {
+      // Convert the CameraImage to a byte buffer
+      Float32List convertedImage = convertCameraImage(image);
+
+      // Create an instance of interpreter
+      final interpreter =
+          await tfl.Interpreter.fromAsset('Assets/model.tflite');
+
+      // Define the number of results you expect from the model
+      const int numResults = 10;
+
+      // Create output tensor. Assuming model has single output of shape [1, numResults]
+      var output = List.filled(1 * numResults, 0).reshape([1, numResults]);
+
+      // Run inference on the frame
+      interpreter.runForMultipleInputs(convertedImage, {0: output});
+
+      // Process the inference results
+      processInferenceResults(output);
+    } catch (e) {
+      print('Failed to run model on frame: $e');
+    }
+  }
+
+  Float32List convertCameraImage(CameraImage image) {
+    final int width = image.width;
+    final int height = image.height;
+    final int uvRowStride = image.planes[1].bytesPerRow;
+    final int? uvPixelStride = image.planes[1].bytesPerPixel;
+
+    final Float32List convertedImage = Float32List(width * height * 3);
+
+    for (int x = 0; x < width; x++) {
+      for (int y = 0; y < height; y++) {
+        final int uvIndex =
+            uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
+        final int index = y * width + x;
+
+        final int yValue = image.planes[0].bytes[index];
+        final int uValue = image.planes[1].bytes[uvIndex];
+        final int vValue = image.planes[2].bytes[uvIndex];
+
+        final color =
+            yuv2rgb(yValue, uValue, vValue); //Assuming yuv2rgb returns a Color
+        convertedImage[index * 3 + 0] = 255.0;
+        convertedImage[index * 3 + 1] = 255.0;
+        convertedImage[index * 3 + 2] = 255.0;
+      }
+    }
+
+    return convertedImage;
+  }
+
+  void processInferenceResults(List<dynamic> output) {
+    // Process the inference output to get the labels and their coordinates
+    List<Map<String, dynamic>> labels = [];
+    for (dynamic label in output) {
+      String text = label['label'];
+      double confidence = label['confidence'];
+      Map<String, dynamic> coordinates = label['rect'];
+
+      labels.add({
+        'text': text,
+        'confidence': confidence,
+        'coordinates': coordinates,
+      });
+    }
+
+    // Do something with the labels and their coordinates
+    // ...
+
+    // Example: Print the labels
+    for (var label in labels) {
+      print('Label: ${label['text']}');
+      print('Confidence: ${label['confidence']}');
+      print('Coordinates: ${label['coordinates']}');
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   Future<void> _onRecordButtonPressed() async {
@@ -96,8 +164,8 @@ class _CameraAppState extends State<CameraApp> {
           _videoPath = path as String;
         });
 
-        processVideo(
-            _videoPath); // Pass the video path to the processing function
+        //processVideo(
+        //    _videoPath); // Pass the video path to the processing function
       } else {
         await _initializeControllerFuture;
         final now = DateTime.now();
@@ -130,15 +198,6 @@ class _CameraAppState extends State<CameraApp> {
     }
   }
 
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  //void startStreaming() {}
-
-  //void save(List<int> _imageBytes){}
   Future<void> _saveImage(List<int> _imageBytes) async {
     counter++;
     final directory = await getApplicationDocumentsDirectory();
@@ -154,53 +213,36 @@ class _CameraAppState extends State<CameraApp> {
     int _2 = Random().nextInt(20);
     DateTime n = DateTime.now();
     setState(() {
-      allSessions.add(Session(n, _1, _2));
-      lView = globalUpdate();
+      // allSessions.add(Session(n, _1, _2));
+      // lView = globalUpdate();
     });
 
     if (_cameraImage != null) {
       Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
       print("doing");
       int b = 0;
-      //int y = 0;
-      /*for (int x in _cameraImage.planes[0].bytes) {
-        //String s =${_cameraImage.planes[0].bytes[x]}${_cameraImage.planes[1].bytes[x]}${_cameraImage.planes[2].bytes[x]}";
-        //int i = int.parse(s);
-        //print("doing");
-        //colored[x] = i;
-        for (int y = 0; y < 3; y++) {
-          colored[b] = _cameraImage.planes[y].bytes[x];
-          b++;
-          //b++;
-          //if (_cameraImage.planes[0].bytes.length % b == 0) {
-          //y++;
-          //}
-          //colored[b - 1] = _cameraImage.planes[y].bytes[x];
-        }
-      }*/
-      //print("done");
-      //print(colored.length);
-      // List<int> planes = _cameraImage.planes[0].bytes +
-      //   _cameraImage.planes[1].bytes +
-      // _cameraImage.planes[2].bytes;
-      //print(planes.length);
-      img.Image image = img.Image.fromBytes(
-        _cameraImage.width,
-        _cameraImage.height,
-        _cameraImage.planes[0]
-            .bytes, //_cameraImage.planes[0].bytes+_cameraImage.planes[1].bytes+_cameraImage.planes[2].bytes,
-        format: img.Format.luminance,
-      );
+
+      img.Image image = convertCameraImage(_cameraImage);
       img.Image Rimage = img.copyRotate(image, 90);
       _saveImage(Rimage.data);
 
-      //print(_cameraImage.planes.length); /data/user/0/com.example.hoopster/app_flutter/frame1.png
-      //print(image.height);
-      Uint8List list = Uint8List.fromList(img.encodePng(Rimage));
-      //print(list.length);
-      await ImageGallerySaver.saveImage(list);
-      //_imageList.add(list);
-      //_imageList.refresh();
+      // Convert the image to RGB format using image package
+      // img.Image image = img.Image.fromBytes(
+      //   _cameraImage.width,
+      //   _cameraImage.height,
+      //   _cameraImage.planes[0].bytes,
+      //   format: img.Format.yuv420,
+      // );
+      // img.Image Rimage = img.copyRotate(image, 90);
+      // _saveImage(Rimage.getBytes(format: img.Format.rgb));
+
+      // Run inference on the converted image
+      List<dynamic>? output = await Tflite.runModelOnBinary(
+        binary: Rimage.getBytes(format: img.Format.rgb),
+      );
+
+      // Process the inference results
+      processInferenceResults(output!);
     }
   }
 
@@ -212,64 +254,89 @@ class _CameraAppState extends State<CameraApp> {
       );
     }
     return Scaffold(
-      /*appBar: AppBar(
-        title: Text("Recording Screen"),
-      ),*/
       body: Container(
-        child: Column(children: [
-          SizedBox(child: CameraPreview(controller)),
-          Expanded(
+        child: Column(
+          children: [
+            SizedBox(child: CameraPreview(controller)),
+            Expanded(
               child: Container(
-                  color: Color.fromARGB(255, 93, 70, 94),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        Hit.toString(),
-                        style: TextStyle(
-                            fontFamily: "Dogica",
-                            fontSize: 60,
-                            color: Color.fromARGB(255, 0, 255, 0)),
+                color: Color.fromARGB(255, 93, 70, 94),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      Hit.toString(),
+                      style: TextStyle(
+                        fontFamily: "Dogica",
+                        fontSize: 60,
+                        color: Color.fromARGB(255, 0, 255, 0),
                       ),
-                      Padding(
-                          padding: EdgeInsets.fromLTRB(
-                              (w / 3) - 65, 0, (w / 3) - 65, 0),
-                          child: GestureDetector(
-                              child: Container(
-                                  height: 80,
-                                  width: 80,
-                                  decoration: BoxDecoration(
-                                      image: DecorationImage(
-                                          image: AssetImage(basketButton),
-                                          fit: BoxFit.fill),
-                                      boxShadow: [
-                                        BoxShadow(
-                                            color: Color.fromARGB(80, 0, 0, 0),
-                                            spreadRadius: 1,
-                                            blurRadius: 5)
-                                      ],
-                                      color: Color.fromARGB(0, 255, 255, 255),
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(30)))),
-                              onTap: () => {
-                                    capture(),
-                                    setState(() {
-                                      Miss++;
-                                      Hit++;
-                                    })
-                                  })),
-                      Text(
-                        Miss.toString(),
-                        style: TextStyle(
-                            fontFamily: "Dogica",
-                            fontSize: 60,
-                            color: Color.fromARGB(255, 255, 0, 0)),
+                    ),
+                    Padding(
+                      padding:
+                          EdgeInsets.fromLTRB((w / 3) - 65, 0, (w / 3) - 65, 0),
+                      child: GestureDetector(
+                        child: Container(
+                          height: 80,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage(basketButton),
+                              fit: BoxFit.fill,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color.fromARGB(80, 0, 0, 0),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                              )
+                            ],
+                            color: Color.fromARGB(0, 255, 255, 255),
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(30),
+                            ),
+                          ),
+                        ),
+                        onTap: () => {
+                          capture(),
+                          setState(() {
+                            Miss++;
+                            Hit++;
+                          })
+                        },
                       ),
-                    ],
-                  )))
-        ]),
+                    ),
+                    Text(
+                      Miss.toString(),
+                      style: TextStyle(
+                        fontFamily: "Dogica",
+                        fontSize: 60,
+                        color: Color.fromARGB(255, 255, 0, 0),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
-    // return Scaffold(body: CameraPreview(controller));
   }
+}
+
+Uint8List yuv2rgb(int y, int u, int v) {
+  double yd = y.toDouble();
+  double ud = u.toDouble() - 128.0;
+  double vd = v.toDouble() - 128.0;
+
+  double r = yd + 1.402 * vd;
+  double g = yd - 0.344136 * ud - 0.714136 * vd;
+  double b = yd + 1.772 * ud;
+
+  r = r.clamp(0, 255).roundToDouble();
+  g = g.clamp(0, 255).roundToDouble();
+  b = b.clamp(0, 255).roundToDouble();
+
+  return Uint8List.fromList([r.toInt(), g.toInt(), b.toInt()]);
 }
