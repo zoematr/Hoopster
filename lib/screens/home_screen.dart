@@ -42,7 +42,7 @@ Widget globalUpdate() {
   );
 }
 
-String basketButton = "Assets\\BasketButton.png";
+String basketButton = "Assets\BasketButton.png";
 Widget lView = globalUpdate();
 
 class HomeScreen extends StatefulWidget {
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontSize: 15,
                           color: Color.fromARGB(255, 255, 255, 255))),
                 ),
-                Expanded(child: lView=globalUpdate())
+                Expanded(child: lView = globalUpdate())
               ]))
         ],
       )),

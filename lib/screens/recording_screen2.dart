@@ -34,14 +34,14 @@ class _CameraAppState extends State<CameraApp> {
   String _videoPath = '';
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
     controller = CameraController(
       cameras[1],
       ResolutionPreset.medium,
     );
 
-    final interpreter = await loadModel;
+    final interpreter = loadModel;
     _initializeControllerFuture = controller.initialize().then((_) {
       controller.startImageStream((image) {
         _cameraImage = image;
@@ -220,7 +220,6 @@ class _CameraAppState extends State<CameraApp> {
 
     if (_cameraImage != null) {
       Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
-      print("doing");
       int b = 0;
       img.Image image = _cameraImage as img.Image;
       var input = [
