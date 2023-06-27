@@ -37,7 +37,7 @@ class _CameraAppState extends State<CameraApp> {
   void initState() {
     super.initState();
     controller = CameraController(
-      cameras[1],
+      cameras.last,
       ResolutionPreset.medium,
     );
 
