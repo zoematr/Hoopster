@@ -41,44 +41,47 @@ class _CameraAppState extends State<CameraApp> {
       ResolutionPreset.medium,
     );
 
-    final interpreter = loadModel;
-    _initializeControllerFuture = controller.initialize().then((_) {
-      controller.startImageStream((image) {
-        _cameraImage = image;
-        processCameraFrame(image, interpreter); // Process each camera frame
-      });
+    // Initiate the loading of the model
+    loadModel().then((interpreter) {
+      // Model has been loaded at this point
+      _initializeControllerFuture = controller.initialize().then((_) {
+        controller.startImageStream((image) {
+          _cameraFrameProcessing(image, interpreter);
+        });
 
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-    }).catchError((Object e) {
-      if (e is CameraException) {
-        switch (e.code) {
-          case 'CameraAccessDenied':
-            // Handle access errors here.
-            break;
-          default:
-            // Handle other errors here.
-            break;
+        if (!mounted) {
+          return;
         }
-      }
+        setState(() {});
+      }).catchError((Object e) {
+        if (e is CameraException) {
+          switch (e.code) {
+            case 'CameraAccessDenied':
+              // Handle access errors here.
+              break;
+            default:
+              // Handle other errors here.
+              break;
+          }
+        }
+      });
     });
+  }
 
-    loadModel(); // Load the TFLite model
+  void _cameraFrameProcessing(CameraImage image, tfl.Interpreter interpreter) {
+    _cameraImage = image;
+    processCameraFrame(image, interpreter); // Process each camera frame
   }
 
   Future<tfl.Interpreter> loadModel() async {
-    final interpreter = await tfl.Interpreter.fromAsset('Assets/model.tflite');
-    return interpreter;
+    return tfl.Interpreter.fromAsset('Assets/model.tflite');
   }
 
-  Future<void> processCameraFrame(CameraImage image, interpreter) async {
+  Future<void> processCameraFrame(
+      CameraImage image, tfl.Interpreter interpreter) async {
     try {
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
-
-      // Create an instance of interpreter
 
       // Define the number of results you expect from the model
       const int numResults = 1;
@@ -87,7 +90,7 @@ class _CameraAppState extends State<CameraApp> {
       var output = List.filled(1 * numResults, 4); //.reshape([1, numResults]);
 
       // Run inference on the frame
-      interpreter.runForMultipleInputs(convertedImage, {0: output});
+      interpreter.runForMultipleInputs([convertedImage], {0: output});
 
       // Process the inference results
       processInferenceResults(output);
