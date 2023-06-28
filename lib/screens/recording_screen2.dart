@@ -93,8 +93,9 @@ class _CameraAppState extends State<CameraApp> {
       var outputTensor =
           List.filled(output.reduce((a, b) => a * b), 0).reshape(output);
       print('Shape of input tensor: ${convertedImage.length}');
-      print('Paddings: ${interpreter.getInputTensor(0).paddings}');
-      print('Input Dimensions: ${interpreter.getInputTensor(0).dims}');
+      print('Paddings: ${interpreter.getInputTensor(0).shape}');
+      print(
+          'Input Dimensions: ${interpreter.getInputTensor(0).numDimensions()}');
 
       // Run inference on the frame
       interpreter.run([convertedImage], {0: outputTensor});
