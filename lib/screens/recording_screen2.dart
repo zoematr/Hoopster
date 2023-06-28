@@ -86,6 +86,7 @@ class _CameraAppState extends State<CameraApp> {
 
       // Create output tensor. Assuming model has a single output
       var output = interpreter.getOutputTensor(0).shape;
+      print(output);
 
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
@@ -177,27 +178,24 @@ class _CameraAppState extends State<CameraApp> {
   void processInferenceResults(List<dynamic> output) {
     // Process the inference output to get the labels and their coordinates
     List<Map<String, dynamic>> labels = [];
+
     for (dynamic label in output) {
       String text = label['label'];
       double confidence = label['confidence'];
       Map<String, dynamic> coordinates = label['rect'];
 
-      labels.add({
-        'text': text,
-        'confidence': confidence,
-        'coordinates': coordinates,
-      });
+      // Check if the label is "ball" or "hoop"
+      if (text == "ball" || text == "hoop") {
+        labels.add({
+          'text': text,
+          'confidence': confidence,
+          'coordinates': coordinates,
+        });
+      }
     }
-
-    // Do something with the labels and their coordinates
+    print(labels);
+    // Do something with the filtered labels
     // ...
-
-    // Example: Print the labels
-    for (var label in labels) {
-      print('Label: ${label['text']}');
-      print('Confidence: ${label['confidence']}');
-      print('Coordinates: ${label['coordinates']}');
-    }
   }
 
   @override
