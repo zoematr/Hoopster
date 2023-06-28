@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
@@ -83,14 +84,20 @@ class _CameraAppState extends State<CameraApp> {
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
 
-      // Define the number of results you expect from the model
-      const int numResults = 1;
+      var output = interpreter.getOutputTensor(0).shape;
+      print(output);
 
       // Create output tensor. Assuming model has single output of shape [1, numResults]
-      var output = List.filled(1 * numResults, 4); //.reshape([1, numResults]);
+      //var output = List.filled(1 * numResults, 4); //.reshape([1, numResults]);
+
+      var outputTensor =
+          List.filled(output.reduce((a, b) => a * b), 0).reshape(output);
+      print('Shape of input tensor: ${convertedImage.length}');
+      print('Paddings: ${interpreter.getInputTensor(0).paddings}');
+      print('Input Dimensions: ${interpreter.getInputTensor(0).dims}');
 
       // Run inference on the frame
-      interpreter.runForMultipleInputs([convertedImage], {0: output});
+      interpreter.run([convertedImage], {0: outputTensor});
 
       // Process the inference results
       processInferenceResults(output);
@@ -100,12 +107,13 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Float32List convertCameraImage(CameraImage image) {
-    final int width = image.width;
-    final int height = image.height;
+    final width = image.width;
+    final height = image.height;
     final int uvRowStride = image.planes[1].bytesPerRow;
     final int? uvPixelStride = image.planes[1].bytesPerPixel;
 
-    final Float32List convertedImage = Float32List(width * height * 3);
+    // Create an Image buffer
+    img.Image imago = img.Image(width, height);
 
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
@@ -117,15 +125,39 @@ class _CameraAppState extends State<CameraApp> {
         final int uValue = image.planes[1].bytes[uvIndex];
         final int vValue = image.planes[2].bytes[uvIndex];
 
-        final color =
-            yuv2rgb(yValue, uValue, vValue); //Assuming yuv2rgb returns a Color
-        convertedImage[index * 3 + 0] = 255.0;
-        convertedImage[index * 3 + 1] = 255.0;
-        convertedImage[index * 3 + 2] = 255.0;
+        List rgbColor = yuv2rgb(yValue, uValue, vValue);
+        // Set the pixel color
+        imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2]);
       }
     }
 
-    return convertedImage;
+    // Resize the image to 13x13
+    img.Image resizedImage = img.copyResize(imago, width: 13, height: 13);
+
+    // Create a new Float32List with the correct shape: [1, 13, 13, 35]
+    Float32List modelInput = Float32List(1 * 13 * 13 * 35);
+
+    // Copy the resized RGB image data into the first three channels of the model input
+    for (int i = 0; i < 13 * 13; i++) {
+      int x = i % 13;
+      int y = i ~/ 13;
+
+      int pixel = resizedImage.getPixel(x, y);
+
+      modelInput[i * 35 + 0] = img.getRed(pixel).toDouble();
+      modelInput[i * 35 + 1] = img.getGreen(pixel).toDouble();
+      modelInput[i * 35 + 2] = img.getBlue(pixel).toDouble();
+    }
+
+    // Fill in the remaining 32 channels with zeros (or whatever is appropriate for your model)
+    for (int i = 0; i < 13 * 13; i++) {
+      for (int j = 3; j < 35; j++) {
+        modelInput[i * 35 + j] = 0.0;
+      }
+    }
+
+    // Now you can use modelInput as the input to your model
+    return modelInput;
   }
 
   void processInferenceResults(List<dynamic> output) {
@@ -225,12 +257,8 @@ class _CameraAppState extends State<CameraApp> {
       Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
       int b = 0;
       img.Image image = _cameraImage as img.Image;
-      var input = [
-        [
-          1,
-          image.height,
-        ]
-      ];
+
+      var input = [1, 13, 13, 3];
       //img.Image image = convertCameraImage(_cameraImage);
       img.Image Rimage = img.copyRotate(image, 90);
       _saveImage(Rimage.data);
