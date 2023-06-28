@@ -84,21 +84,34 @@ class _CameraAppState extends State<CameraApp> {
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
 
+      // Create output tensor. Assuming model has a single output
       var output = interpreter.getOutputTensor(0).shape;
-      print(output);
 
-      // Create output tensor. Assuming model has single output of shape [1, numResults]
-      //var output = List.filled(1 * numResults, 4); //.reshape([1, numResults]);
+      // Create input tensor with the desired shape
+      var inputShape = interpreter.getInputTensor(0).shape;
+      var inputTensor = <List<List<List<dynamic>>>>[
+        List.generate(inputShape[1], (_) {
+          return List.generate(inputShape[2], (_) {
+            return List.generate(inputShape[3], (_) {
+              return [
+                0.0
+              ]; // Placeholder value, modify this according to your needs
+            });
+          });
+        })
+      ];
 
-      var outputTensor =
-          List.filled(output.reduce((a, b) => a * b), 0).reshape(output);
-      print('Shape of input tensor: ${convertedImage.length}');
-      print('Paddings: ${interpreter.getInputTensor(0).shape}');
-      print(
-          'Input Dimensions: ${interpreter.getInputTensor(0).numDimensions()}');
+      // Copy the convertedImage data into the inputTensor
+      for (int i = 0; i < convertedImage.length; i++) {
+        int x = i % inputShape[2];
+        int y = (i ~/ inputShape[2]) % inputShape[1];
+        int c = (i ~/ (inputShape[1] * inputShape[2])) % inputShape[3];
+
+        inputTensor[y][x][c][0] = convertedImage[i];
+      }
 
       // Run inference on the frame
-      interpreter.run([convertedImage], {0: outputTensor});
+      interpreter.run(inputTensor, {0: output});
 
       // Process the inference results
       processInferenceResults(output);
