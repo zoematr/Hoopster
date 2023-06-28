@@ -81,6 +81,7 @@ class _CameraAppState extends State<CameraApp> {
   Future<void> processCameraFrame(
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
+      print('processing camera frame');
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
 
@@ -119,9 +120,11 @@ class _CameraAppState extends State<CameraApp> {
     } catch (e) {
       print('Failed to run model on frame: $e');
     }
+    print('done executing');
   }
 
   Float32List convertCameraImage(CameraImage image) {
+    print('converting image');
     final width = image.width;
     final height = image.height;
     final int uvRowStride = image.planes[1].bytesPerRow;
@@ -170,12 +173,15 @@ class _CameraAppState extends State<CameraApp> {
         modelInput[i * 35 + j] = 0.0;
       }
     }
+    print('finished converting image');
 
     // Now you can use modelInput as the input to your model
     return modelInput;
   }
 
   void processInferenceResults(List<dynamic> output) {
+    print('test');
+    print(output.toString());
     // Process the inference output to get the labels and their coordinates
     List<Map<String, dynamic>> labels = [];
 
@@ -193,7 +199,12 @@ class _CameraAppState extends State<CameraApp> {
         });
       }
     }
-    print(labels);
+
+    if (labels.isEmpty) {
+      // No recognitions found, do nothing
+      return;
+    }
+
     // Do something with the filtered labels
     // ...
   }
