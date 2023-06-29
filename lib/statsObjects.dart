@@ -69,7 +69,7 @@ class _statsObjectstate extends State<statsObjects> {
       for (int i = 0; i < Toconvert[0].length; i++) {
         barGroupdata.add(BarChartGroupData(x: i, barRods: [
           BarChartRodData(
-              toY: Toconvert[1][i].toDouble(),
+              toY: Toconvert[i+1][2].toInt().toDouble(),
               color: Color.fromARGB(255, 255, 234, 0))
         ]));
       }

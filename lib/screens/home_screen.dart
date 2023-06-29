@@ -13,23 +13,23 @@ import 'package:hoopster/statsObjects.dart';
 double h = 0;
 double w = 0;
 //List<int> bo = [1, 2, 3, 4, 5, 6, 7];
-List<List<double>> tr0 = [
+/*List<List<double>> tr0 = [
   [20.03, 02.04, 02.04],
   [5, 9],
   [3, 1],
   [9, 4]
-];
+];*/
 
-List<List<double>> tr1 = [
+/*List<List<double>> tr1 = [
   [01.04, 02.04, 02.04],
   [92, 78, 32]
-];
+];*/
 statsObjects Graph1 = statsObjects([], "");
 statsObjects Graph2 = statsObjects([], "");
 
 Widget globalUpdate() {
   Graph1 = statsObjects(parseForgraph(allSessions), "shots");
-  Graph2 = statsObjects(parseForgraph(allSessions), "shots");
+  Graph2 = statsObjects(parseForgraph(allSessions), "accuracy");
   List<statsObjects> GraphList = [];
   GraphList.add(Graph1);
   GraphList.add(Graph2);
@@ -42,7 +42,7 @@ Widget globalUpdate() {
   );
 }
 
-String basketButton = "Assets\BasketButton.png";
+String basketButton = "Assets\\BasketButton.png";
 Widget lView = globalUpdate();
 
 class HomeScreen extends StatefulWidget {

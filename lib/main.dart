@@ -9,8 +9,8 @@ late List<CameraDescription> cameras;
 
 SharedPreferences? prefs;
 List<Session> allSessions = [
-  Session(DateTime.now(), 10, 3),
-  Session(DateTime.now(), 2, 8)
+  //Session(DateTime.now(), 10, 3),
+  //Session(DateTime.now(), 2, 8)
 ];
 
 Future<void> main() async {
@@ -19,8 +19,9 @@ Future<void> main() async {
   if (!prefs!.containsKey("Session")) {
     await prefs!.setStringList("Session", <String>[]);
   }
-
+  //prefs?.clear();
   allSessions += getAll();
+  saveAll(allSessions);
   print(allSessions);
   cameras = await availableCameras();
   // Step 3

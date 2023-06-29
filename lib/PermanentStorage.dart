@@ -25,8 +25,25 @@ class Session {
   }
 
   void save() {
+    List<String>? Slist = prefs!.getStringList('Session');
     s = "${Day}.${Month} ${Hit} ${Miss} ${Year}";
-    prefs?.setString("Session", s);
+    prefs?.clear();
+    if (Slist != null) {
+      if(Slist.length==0){prefs?.setStringList("Session", Slist! + [s]);}
+      for (String sl in Slist) {
+        if (s == sl) {
+          prefs?.setStringList("Session", Slist);
+          break;
+        } else {
+          prefs?.setStringList("Session", Slist! + [s]);
+        }
+      }
+    }
+  }
+
+  double computeAccuracy() {
+    double Accuracy = (Hit / (Miss + Hit) * 100);
+    return Accuracy;
   }
 }
 
@@ -61,6 +78,7 @@ List<List<double>> parseForgraph(List<Session> all) {
     dates.add(s.dayMonth);
     Shot.add(s.Miss.toDouble());
     Shot.add(s.Hit.toDouble());
+    Shot.add(s.computeAccuracy());
     Shots.add(Shot);
   }
   ret.add(dates);

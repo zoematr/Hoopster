@@ -4,6 +4,8 @@ import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hoopster/PermanentStorage.dart';
+import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
@@ -75,7 +77,7 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset('Assets/model.tflite');
+    return tfl.Interpreter.fromAsset('Assets\\model.tflite');
   }
 
   Future<void> processCameraFrame(
@@ -91,6 +93,9 @@ class _CameraAppState extends State<CameraApp> {
 
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
+      //print(inputShape);
+      print("eo");
+      //var inputShape = [1, 13, 13, 35];
       var inputTensor = <List<List<List<dynamic>>>>[
         List.generate(inputShape[1], (_) {
           return List.generate(inputShape[2], (_) {
@@ -102,20 +107,28 @@ class _CameraAppState extends State<CameraApp> {
           });
         })
       ];
+      print("mamaaaaaa");
+      print(inputTensor);
+      print(convertedImage.length);
 
       // Copy the convertedImage data into the inputTensor
       for (int i = 0; i < convertedImage.length; i++) {
+        print("see");
         int x = i % inputShape[2];
         int y = (i ~/ inputShape[2]) % inputShape[1];
         int c = (i ~/ (inputShape[1] * inputShape[2])) % inputShape[3];
+        //print("see2");
 
         inputTensor[y][x][c][0] = convertedImage[i];
+        print("$x,$y,$c,$i");
       }
 
       // Run inference on the frame
-      interpreter.run(inputTensor, {0: output});
+      print("here, line 116");
+      interpreter.runForMultipleInputs(inputTensor, {0: output});
 
       // Process the inference results
+      print("here2, line 120");
       processInferenceResults(output);
     } catch (e) {
       print('Failed to run model on frame: $e');
@@ -354,11 +367,16 @@ class _CameraAppState extends State<CameraApp> {
                           ),
                         ),
                         onTap: () => {
-                          capture(),
+                          //capture(),
                           setState(() {
                             Miss++;
                             Hit++;
                           })
+                        },
+                        onDoubleTap: () => {
+                         //Session s= Session(DateTime.now(), 10, 7);
+
+
                         },
                       ),
                     ),
