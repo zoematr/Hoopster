@@ -123,7 +123,7 @@ class _CameraAppState extends State<CameraApp> {
 
       // Run inference on the frame
       print("here, line 116");
-      interpreter.runForMultipleInputs(inputTensor, {0: output});
+      interpreter.run(inputTensor, {0: output});
       print(output);
       // Process the inference results
       //print("here2, line 120");
