@@ -77,59 +77,57 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset('Assets\\model.tflite');
+    return tfl.Interpreter.fromAsset('Assets/model.tflite');
   }
 
   Future<void> processCameraFrame(
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
-      print('processing camera frame');
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
 
       // Create output tensor. Assuming model has a single output
       var output = interpreter.getOutputTensor(0).shape;
-      print(output);
 
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
       //print(inputShape);
-      print("eo");
       //var inputShape = [1, 13, 13, 35];
       var inputTensor = <List<List<List<dynamic>>>>[
         List.generate(inputShape[1], (_) {
           return List.generate(inputShape[2], (_) {
             return List.generate(inputShape[3], (_) {
-              return [
-                0.0
-              ]; // Placeholder value, modify this according to your needs
+              return 0.0; // Placeholder value, modify this according to your needs
             });
           });
         })
       ];
+
       print("mamaaaaaa");
-      print(inputTensor);
-      print(convertedImage.length);
+      print(inputShape);
+      print(convertedImage.shape);
+      print(inputTensor.shape);
 
       // Copy the convertedImage data into the inputTensor
+// Copy the convertedImage data into the inputTensor
       for (int i = 0; i < convertedImage.length; i++) {
-        print("see");
-        int x = i % inputShape[2];
-        int y = (i ~/ inputShape[2]) % inputShape[1];
-        int c = (i ~/ (inputShape[1] * inputShape[2])) % inputShape[3];
-        //print("see2");
+        int index = i;
+        int c = index % 3;
+        index = index ~/ 3;
+        int x = index % 416;
+        index = index ~/ 416;
+        int y = index;
 
-        inputTensor[y][x][c][0] = convertedImage[i];
-        print("$x,$y,$c,$i");
+        inputTensor[0][y][x][c] = convertedImage[i];
       }
 
       // Run inference on the frame
       print("here, line 116");
       interpreter.runForMultipleInputs(inputTensor, {0: output});
-
+      print(output);
       // Process the inference results
-      print("here2, line 120");
-      processInferenceResults(output);
+      //print("here2, line 120");
+      //processInferenceResults(output);
     } catch (e) {
       print('Failed to run model on frame: $e');
     }
@@ -162,30 +160,24 @@ class _CameraAppState extends State<CameraApp> {
       }
     }
 
-    // Resize the image to 13x13
-    img.Image resizedImage = img.copyResize(imago, width: 13, height: 13);
+    // Resize the image to 416x416
+    img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
 
-    // Create a new Float32List with the correct shape: [1, 13, 13, 35]
-    Float32List modelInput = Float32List(1 * 13 * 13 * 35);
+    Float32List modelInput = Float32List(1 * 416 * 416 * 3);
 
-    // Copy the resized RGB image data into the first three channels of the model input
-    for (int i = 0; i < 13 * 13; i++) {
-      int x = i % 13;
-      int y = i ~/ 13;
+    // Copy the resized RGB image data into the model input
+    int pixelIndex = 0;
+    for (int i = 0; i < 416; i++) {
+      for (int j = 0; j < 416; j++) {
+        int pixel = resizedImage.getPixel(i, j);
 
-      int pixel = resizedImage.getPixel(x, y);
-
-      modelInput[i * 35 + 0] = img.getRed(pixel).toDouble();
-      modelInput[i * 35 + 1] = img.getGreen(pixel).toDouble();
-      modelInput[i * 35 + 2] = img.getBlue(pixel).toDouble();
-    }
-
-    // Fill in the remaining 32 channels with zeros (or whatever is appropriate for your model)
-    for (int i = 0; i < 13 * 13; i++) {
-      for (int j = 3; j < 35; j++) {
-        modelInput[i * 35 + j] = 0.0;
+        modelInput[pixelIndex] = img.getRed(pixel) / 255.0;
+        modelInput[pixelIndex + 1] = img.getGreen(pixel) / 255.0;
+        modelInput[pixelIndex + 2] = img.getBlue(pixel) / 255.0;
+        pixelIndex += 3;
       }
     }
+
     print('finished converting image');
 
     // Now you can use modelInput as the input to your model
@@ -246,7 +238,7 @@ class _CameraAppState extends State<CameraApp> {
         final fileName = 'hoopster_${formattedDate}.mp4';
         final path = '${Directory.systemTemp.path}/$fileName';
         print(path);
-        await controller.startVideoRecording();
+        //await controller.startVideoRecording();
       }
     } catch (e) {
       print(e);
@@ -374,9 +366,7 @@ class _CameraAppState extends State<CameraApp> {
                           })
                         },
                         onDoubleTap: () => {
-                         //Session s= Session(DateTime.now(), 10, 7);
-
-
+                          //Session s= Session(DateTime.now(), 10, 7);
                         },
                       ),
                     ),
