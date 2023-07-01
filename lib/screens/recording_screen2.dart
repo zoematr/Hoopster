@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ffi';
 import 'dart:math';
 import 'package:camera/camera.dart';
@@ -80,21 +81,23 @@ class _CameraAppState extends State<CameraApp> {
     setState(() {
       _cameraImage = image;
     });
-    _sendToIsolate({'image': image, 'interpreter': interpreter});
+    Isolate.run(()async {processCameraFrame(image,interpreter);});
+    //_sendToIsolate({'image': image, 'interpreter': interpreter});
   }
 
-  void _sendToIsolate(Map<String, dynamic> data) async {
+ /* void _sendToIsolate(Map<String, dynamic> data) async {
     // Create the isolate the first time that this function is called.
     if (_isolate == null) {
       _receivePort = ReceivePort();
       _isolate = await Isolate.spawn(_isolateHandler, _receivePort.sendPort);
+     
       _sendPort = await _receivePort.first;
     }
 
     _sendPort!.send(data);
-  }
+  }*/ 
 
-  void _isolateHandler(SendPort sendPort) {
+ /* void _isolateHandler(SendPort sendPort) {
     final port = ReceivePort();
     sendPort.send(port.sendPort);
 
@@ -104,10 +107,15 @@ class _CameraAppState extends State<CameraApp> {
       processCameraFrame(image,
           interpreter); // Assuming processCameraFrame is a static function
     });
-  }
+  }*/
+
+
+ /* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
+    processCameraFrame(im,interpreter_);
+  }*/
 
   Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset('Assets/model.tflite');
+    return tfl.Interpreter.fromAsset('Assets\\model.tflite');
   }
 
   Future<void> processCameraFrame(
