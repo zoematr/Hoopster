@@ -17,7 +17,7 @@ import '../main.dart';
 import 'home_screen.dart';
 import 'dart:isolate';
 
-late Isolate _isolate;
+late Isolate isolate;
 late ReceivePort _receivePort;
 SendPort? _sendPort;
 
@@ -77,40 +77,51 @@ class _CameraAppState extends State<CameraApp> {
     });
   }
 
-  void _cameraFrameProcessing(CameraImage image, tfl.Interpreter interpreter) {
+  //void mainHandler(dynamic data, SendPort isolateSendPort) {}
+
+  //void isolateHandler(
+  //  dynamic data, SendPort mainSendPort, SendErrorFunction onSendError) {}
+
+  void _cameraFrameProcessing(
+      CameraImage image, tfl.Interpreter interpreter) async {
     setState(() {
       _cameraImage = image;
     });
-    Isolate.run(()async {processCameraFrame(image,interpreter);});
-    //_sendToIsolate({'image': image, 'interpreter': interpreter});
+    // Worker W = Worker();
+    //Isolate.run(()async {processCameraFrame(image,interpreter);});7
+    //_isolate.pause();
+    _receivePort = ReceivePort();
+    _sendPort = await _receivePort.first;
+    isolate = await Isolate.spawn(_isolateHandler, _receivePort.sendPort);
+    _sendToIsolate({'image': image, 'interpreter': interpreter});
   }
 
- /* void _sendToIsolate(Map<String, dynamic> data) async {
+  void _sendToIsolate(Map<String, dynamic> data) async {
     // Create the isolate the first time that this function is called.
-    if (_isolate == null) {
-      _receivePort = ReceivePort();
-      _isolate = await Isolate.spawn(_isolateHandler, _receivePort.sendPort);
-     
-      _sendPort = await _receivePort.first;
+    if (isolate == null) {
+      
     }
 
     _sendPort!.send(data);
-  }*/ 
+  }
 
- /* void _isolateHandler(SendPort sendPort) {
+  void _isolateHandler(SendPort sendPort) {
+    print("3");
     final port = ReceivePort();
     sendPort.send(port.sendPort);
+    print("2");
 
     port.listen((message) {
+      print("4");
       CameraImage image = message['image'];
       tfl.Interpreter interpreter = message['interpreter'];
       processCameraFrame(image,
           interpreter); // Assuming processCameraFrame is a static function
     });
-  }*/
+    print("4");
+  }
 
-
- /* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
+  /* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
     processCameraFrame(im,interpreter_);
   }*/
 
