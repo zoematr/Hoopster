@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
+import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -81,11 +82,13 @@ class _CameraAppState extends State<CameraApp> {
     setState(() {
       _cameraImage = image;
     });
-    Isolate.run(()async {processCameraFrame(image,interpreter);});
+    Isolate.run(() async {
+      processCameraFrame(image, interpreter);
+    });
     //_sendToIsolate({'image': image, 'interpreter': interpreter});
   }
 
- /* void _sendToIsolate(Map<String, dynamic> data) async {
+  /* void _sendToIsolate(Map<String, dynamic> data) async {
     // Create the isolate the first time that this function is called.
     if (_isolate == null) {
       _receivePort = ReceivePort();
@@ -95,9 +98,9 @@ class _CameraAppState extends State<CameraApp> {
     }
 
     _sendPort!.send(data);
-  }*/ 
+  }*/
 
- /* void _isolateHandler(SendPort sendPort) {
+  /* void _isolateHandler(SendPort sendPort) {
     final port = ReceivePort();
     sendPort.send(port.sendPort);
 
@@ -109,8 +112,7 @@ class _CameraAppState extends State<CameraApp> {
     });
   }*/
 
-
- /* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
+  /* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
     processCameraFrame(im,interpreter_);
   }*/
 
