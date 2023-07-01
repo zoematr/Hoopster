@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ffi';
 import 'dart:math';
 import 'package:camera/camera.dart';
@@ -8,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
+import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -15,11 +15,6 @@ import 'package:path_provider/path_provider.dart';
 
 import '../main.dart';
 import 'home_screen.dart';
-import 'dart:isolate';
-
-late Isolate _isolate;
-late ReceivePort _receivePort;
-SendPort? _sendPort;
 
 int i = 0;
 late CameraImage _cameraImage;
@@ -78,44 +73,12 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   void _cameraFrameProcessing(CameraImage image, tfl.Interpreter interpreter) {
-    setState(() {
-      _cameraImage = image;
-    });
-    Isolate.run(()async {processCameraFrame(image,interpreter);});
-    //_sendToIsolate({'image': image, 'interpreter': interpreter});
+    _cameraImage = image;
+    processCameraFrame(image, interpreter); // Process each camera frame
   }
 
- /* void _sendToIsolate(Map<String, dynamic> data) async {
-    // Create the isolate the first time that this function is called.
-    if (_isolate == null) {
-      _receivePort = ReceivePort();
-      _isolate = await Isolate.spawn(_isolateHandler, _receivePort.sendPort);
-     
-      _sendPort = await _receivePort.first;
-    }
-
-    _sendPort!.send(data);
-  }*/ 
-
- /* void _isolateHandler(SendPort sendPort) {
-    final port = ReceivePort();
-    sendPort.send(port.sendPort);
-
-    port.listen((message) {
-      CameraImage image = message['image'];
-      tfl.Interpreter interpreter = message['interpreter'];
-      processCameraFrame(image,
-          interpreter); // Assuming processCameraFrame is a static function
-    });
-  }*/
-
-
- /* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
-    processCameraFrame(im,interpreter_);
-  }*/
-
   Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset('Assets\\model.tflite');
+    return tfl.Interpreter.fromAsset('Assets/model.tflite');
   }
 
   Future<void> processCameraFrame(
@@ -125,13 +88,7 @@ class _CameraAppState extends State<CameraApp> {
       Float32List convertedImage = convertCameraImage(image);
 
       // Create output tensor. Assuming model has a single output
-      var outputshape = interpreter.getOutputTensor(0).shape;
-      var output = List.generate(
-          1,
-          (_) => List.generate(
-              13,
-              (_) => List.generate(
-                  13, (_) => List.generate(35, (_) => 0 as dynamic))));
+      var output = interpreter.getOutputTensor(0).shape;
 
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
@@ -147,6 +104,11 @@ class _CameraAppState extends State<CameraApp> {
         })
       ];
 
+      print("mamaaaaaa");
+      print(inputShape);
+      print(convertedImage.shape);
+      print(inputTensor.shape);
+
       // Copy the convertedImage data into the inputTensor
 // Copy the convertedImage data into the inputTensor
       for (int i = 0; i < convertedImage.length; i++) {
@@ -161,17 +123,20 @@ class _CameraAppState extends State<CameraApp> {
       }
 
       // Run inference on the frame
+      print("here, line 116");
       interpreter.run(inputTensor, {0: output});
-
+      print(output);
       // Process the inference results
       //print("here2, line 120");
-      processInferenceResults(output);
+      //processInferenceResults(output);
     } catch (e) {
       print('Failed to run model on frame: $e');
     }
+    print('done executing');
   }
 
   Float32List convertCameraImage(CameraImage image) {
+    print('converting image');
     final width = image.width;
     final height = image.height;
     final int uvRowStride = image.planes[1].bytesPerRow;
@@ -214,29 +179,40 @@ class _CameraAppState extends State<CameraApp> {
       }
     }
 
+    print('finished converting image');
+
     // Now you can use modelInput as the input to your model
     return modelInput;
   }
 
-  void processInferenceResults(List<List<List<List<dynamic>>>> output) {
-    // Assuming the output is a 4D tensor with dimensions [1, 13, 13, 35]
+  void processInferenceResults(List<dynamic> output) {
+    print('test');
+    print(output.toString());
+    // Process the inference output to get the labels and their coordinates
+    List<Map<String, dynamic>> labels = [];
 
-    for (int i = 0; i < output.length; i++) {
-      // Looping through dimension 1
-      for (int j = 0; j < output[i].length; j++) {
-        // Looping through dimension 2
-        for (int k = 0; k < output[i][j].length; k++) {
-          // Looping through dimension 3
-          for (int l = 0; l < output[i][j][k].length; l++) {
-            // Looping through dimension 4
-            // Perform processing on each element at output[i][j][k][l]
-            var element = output[i][j][k][l];
-            print(element);
-            // Based on your TensorFlow model's output, you will have to decide what kind of processing is required here.
-          }
-        }
+    for (dynamic label in output) {
+      String text = label['label'];
+      double confidence = label['confidence'];
+      Map<String, dynamic> coordinates = label['rect'];
+
+      // Check if the label is "ball" or "hoop"
+      if (text == "ball" || text == "hoop") {
+        labels.add({
+          'text': text,
+          'confidence': confidence,
+          'coordinates': coordinates,
+        });
       }
     }
+
+    if (labels.isEmpty) {
+      // No recognitions found, do nothing
+      return;
+    }
+
+    // Do something with the filtered labels
+    // ...
   }
 
   @override
