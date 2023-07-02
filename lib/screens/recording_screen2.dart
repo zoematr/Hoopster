@@ -29,6 +29,10 @@ int Hit = 0;
 int Miss = 0;
 var height;
 var width;
+late List<List<int>> _outputShapes;
+
+/// Types of output tensors
+late List<tfl.TensorType> _outputTypes;
 
 class CameraApp extends StatefulWidget {
   const CameraApp({Key? key}) : super(key: key);
@@ -87,6 +91,7 @@ class _CameraAppState extends State<CameraApp> {
     setState(() {
       _cameraImage = image;
     });
+
     // Worker W = Worker();
     //Isolate.run(()async {processCameraFrame(image,interpreter);});7
     //_isolate.pause();
@@ -106,6 +111,9 @@ class _CameraAppState extends State<CameraApp> {
   void _isolateHandler(SendPort sendPort) {
     print("3");
     final port = ReceivePort();
+    port.listen((message) {
+      print(message);
+    });
     sendPort.send(port.sendPort);
     print("2");
 
@@ -113,8 +121,8 @@ class _CameraAppState extends State<CameraApp> {
       print("4");
       CameraImage image = message['image'];
       tfl.Interpreter interpreter = message['interpreter'];
-      processCameraFrame(image,
-          interpreter); // Assuming processCameraFrame is a static function
+      sendPort.send(processCameraFrame(
+          image, interpreter)); // Send the result back to the main isolate
     });
     print("4");
   }
@@ -132,17 +140,17 @@ class _CameraAppState extends State<CameraApp> {
     try {
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
-
+      print("running the right stuf");
       // Create output tensor. Assuming model has a single output
       var outputshape = interpreter.getOutputTensor(0).shape;
-      var output = List.generate(
-          1,
-          (_) => List.generate(
-              13,
-              (_) => List.generate(
-                  13, (_) => List.generate(35, (_) => 0 as dynamic))));
+      var outputTensors = interpreter.getOutputTensors();
+      _outputShapes = [];
+      _outputTypes = [];
+      outputTensors.forEach((tensor) {
+        _outputShapes.add(tensor.shape);
+        _outputTypes.add(tensor.type);
+      });
 
-      // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
       //print(inputShape);
       //var inputShape = [1, 13, 13, 35];
@@ -170,11 +178,12 @@ class _CameraAppState extends State<CameraApp> {
       }
 
       // Run inference on the frame
-      interpreter.run(inputTensor, {0: output});
-
+      interpreter.run(inputTensor, {0: _outputShapes});
+      print(_outputShapes);
+      //return _outputShapes;
       // Process the inference results
       //print("here2, line 120");
-      processInferenceResults(output);
+      //processInferenceResults(_outputShapes);
     } catch (e) {
       print('Failed to run model on frame: $e');
     }
