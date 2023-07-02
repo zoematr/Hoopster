@@ -98,9 +98,7 @@ class _CameraAppState extends State<CameraApp> {
 
   void _sendToIsolate(Map<String, dynamic> data) async {
     // Create the isolate the first time that this function is called.
-    if (isolate == null) {
-      
-    }
+    if (isolate == null) {}
 
     _sendPort!.send(data);
   }
@@ -126,7 +124,7 @@ class _CameraAppState extends State<CameraApp> {
   }*/
 
   Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset('Assets\\model.tflite');
+    return tfl.Interpreter.fromAsset('Assets/model.tflite');
   }
 
   Future<void> processCameraFrame(
