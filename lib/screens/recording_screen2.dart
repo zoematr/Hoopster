@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
+import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
