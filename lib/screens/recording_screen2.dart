@@ -88,9 +88,9 @@ class _CameraAppState extends State<CameraApp> {
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
+      imago = ImageUtils.resizeImageTo32(imago);
       var tensorImage = TensorImage.fromImage(imago);
       tensorImage = ImageProcessorBuilder()
-          .add(ResizeOp(416, 416, ResizeMethod.NEAREST_NEIGHBOUR))
           .add(NormalizeOp(0, 255))
           .build()
           .process(tensorImage);
@@ -374,5 +374,30 @@ class ImageUtils {
         ((b << 16) & 0xff0000) |
         ((g << 8) & 0xff00) |
         (r & 0xff);
+  }
+
+  static img.Image resizeImageTo32(img.Image originalImage) {
+    // Check which is smaller, width or height
+    bool isWidthSmaller = originalImage.width < originalImage.height;
+    int newWidth;
+    int newHeight;
+
+    if (isWidthSmaller) {
+      // If width is smaller, set it to 32 and calculate height to keep the aspect ratio
+      newWidth = 32;
+      newHeight =
+          (originalImage.height / originalImage.width * newWidth).round();
+    } else {
+      // If height is smaller, set it to 32 and calculate width to keep the aspect ratio
+      newHeight = 32;
+      newWidth =
+          (originalImage.width / originalImage.height * newHeight).round();
+    }
+
+    // Use the resize function from the image library to resize the image
+    img.Image resizedImage =
+        img.copyResize(originalImage, width: newWidth, height: newHeight);
+
+    return resizedImage;
   }
 }
