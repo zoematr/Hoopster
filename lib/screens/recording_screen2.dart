@@ -23,6 +23,7 @@ int Hit = 0;
 int Miss = 0;
 var height;
 var width;
+const int INPUT_SIZE = 419;
 //late tfl.IsolateInterpreter isolate;
 late tfl.Interpreter interpreter;
 
@@ -87,9 +88,29 @@ class _CameraAppState extends State<CameraApp> {
     try {
       // Convert the CameraImage to a byte buffer
       Float32List convertedImage = convertCameraImage(image);
+      List<List<int>> _outputShapes;
+
+      /// Types of output tensors
+      List<tfl.TfLiteType> _outputTypes;
+      var outputTensors = interpreter.getOutputTensors();
+      _outputShapes = [];
+      _outputTypes = [];
+      outputTensors.forEach((tensor) {
+        _outputShapes.add(tensor.shape);
+        _outputTypes.add(tensor.type);
+      });
       // Create output tensor. Assuming model has a single output
       var output = interpreter.getOutputTensor(0).shape;
-
+      TensorBuffer outputLocations = TensorBufferFloat(_outputShapes[0]);
+      TensorBuffer outputClasses = TensorBufferFloat(_outputShapes[1]);
+      TensorBuffer outputScores = TensorBufferFloat(_outputShapes[2]);
+      TensorBuffer numLocations = TensorBufferFloat(_outputShapes[3]);
+      Map<int, Object> outputs = {
+        0: outputLocations.buffer,
+        1: outputClasses.buffer,
+        2: outputScores.buffer,
+        3: numLocations.buffer,
+      };
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
       //print(inputShape);
@@ -103,6 +124,13 @@ class _CameraAppState extends State<CameraApp> {
           });
         })
       ];
+
+      _outputShapes = [];
+      _outputTypes = [];
+      outputTensors.forEach((tensor) {
+        _outputShapes.add(tensor.shape);
+        _outputTypes.add(tensor.type);
+      });
       print("mamaaaaaa");
       print(inputShape);
       print(convertedImage.shape);
@@ -143,6 +171,7 @@ class _CameraAppState extends State<CameraApp> {
     final int uvRowStride = image.planes[1].bytesPerRow;
     final int? uvPixelStride = image.planes[1].bytesPerPixel;
     // Create an Image buffer
+    print(image.planes.length);
     img.Image imago = img.Image(height: height, width: width);
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
@@ -379,4 +408,20 @@ Uint8List yuv2rgb(int y, int u, int v) {
   g = g.clamp(0, 255).roundToDouble();
   b = b.clamp(0, 255).roundToDouble();
   return Uint8List.fromList([r.toInt(), g.toInt(), b.toInt()]);
+}
+
+TensorImage getProcessedImage(TensorImage inputImage) {
+  int padSize;
+  padSize = max(inputImage.height, inputImage.width);
+
+  // create ImageProcessor
+  ImageProcessor imageProcessor = ImageProcessorBuilder()
+      // Padding the image
+      .add(ResizeWithCropOrPadOp(padSize, padSize))
+      // Resizing to input size
+      .add(ResizeOp(419, 419, ResizeMethod.BILINEAR))
+      .build();
+
+  inputImage = imageProcessor.process(inputImage);
+  return inputImage;
 }
