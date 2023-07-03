@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:math';
 import 'package:camera/camera.dart';
+import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -86,64 +87,22 @@ class _CameraAppState extends State<CameraApp> {
   Future<void> processCameraFrame(
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
-      // Convert the CameraImage to a byte buffer
+      img.Image imago = ImageUtils.convertYUV420ToImage(image);
+      var tensorImage = TensorImage.fromImage(imago);
+      tensorImage = ImageProcessorBuilder()
+          .add(ResizeOp(416, 416, ResizeMethod.NEAREST_NEIGHBOUR))
+          .add(NormalizeOp(0, 255))
+          .build()
+          .process(tensorImage);
 
-      Float32List convertedImage = convertCameraImage(image);
-      List<List<int>> _outputShapes;
-      List<tfl.TfLiteType> _outputTypes;
-      var outputTensors = interpreter.getOutputTensor(0);
-      _outputShapes = [];
-      _outputTypes = [];
+      var outputShape = interpreter.getOutputTensor(0).shape;
+      var outputType = interpreter.getOutputTensor(0).type;
+      var outputBuffer = TensorBuffer.createFixedSize(outputShape, outputType);
+      interpreter.run(tensorImage.buffer, {0: outputBuffer.getBuffer()});
+      print('ran interpreter');
+      var outputResult = outputBuffer.getDoubleList();
+      print(outputResult);
 
-      TensorBuffer outputClasses = TensorBufferFloat(outputTensors.shape);
-      String k = """
-      TensorBuffer outputLocations = TensorBufferFloat(_outputShapes[0]);
-      TensorBuffer outputScores = TensorBufferFloat(_outputShapes[2]);
-      TensorBuffer numLocations = TensorBufferFloat(_outputShapes[3]);
-      Map<int, Object> outputs = {
-        0: outputLocations.buffer,
-        1: outputClasses.buffer,
-        2: outputScores.buffer,
-        3: numLocations.buffer,
-      };
-""";
-      // Create input tensor with the desired shape
-      var inputShape = interpreter.getInputTensor(0).shape;
-
-      var inputTensor = <List<List<List<dynamic>>>>[
-        List.generate(inputShape[0], (_) {
-          return List.generate(inputShape[1], (_) {
-            return List.generate(inputShape[2], (_) {
-              return 0.0; // Placeholder value, modify this according to your needs
-            });
-          });
-        })
-      ];
-      print(inputTensor.shape);
-      print(convertedImage.length)
-      // Copy the convertedImage data into the inputTensor
-// Copy the convertedImage data into the inputTensor
-      for (int i = 0; i < convertedImage.length; i++) {
-        int index = i;
-        int c = index % 3;
-        index = index ~/ 3;
-        int x = index % 416;
-        index = index ~/ 416;
-        int y = index % 416;
-
-        inputTensor[0][y][x][c] = convertedImage[i];
-      }
-
-      print(inputTensor.shape);
-
-      // Run inference on the frame
-
-      //await isolate.run(inputTensor, {0: output});
-
-      //isolate.close();
-      //interpreter.close();
-      interpreter.runForMultipleInputs(inputTensor, {0: outputClasses});
-      print(outputClasses);
       // Process the inference results
       //print("here2, line 120");
       //processInferenceResults(output);
@@ -153,42 +112,45 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Float32List convertCameraImage(CameraImage image) {
-    var width = image.width;
-    var height = image.height;
-    final int uvRowStride = image.planes[1].bytesPerRow;
-    final int? uvPixelStride = image.planes[1].bytesPerPixel;
-    // Create an Image buffer
+    try {
+      var width = image.width;
+      var height = image.height;
+      final int uvRowStride = image.planes[1].bytesPerRow;
+      final int? uvPixelStride = image.planes[1].bytesPerPixel;
 
-    img.Image imago = img.Image(height: height, width: width);
-    for (int x = 0; x < width; x++) {
-      for (int y = 0; y < height; y++) {
-        final int uvIndex =
-            uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
-        final int index = y * width + x;
-        final int yValue = image.planes[0].bytes[index];
-        final int uValue = image.planes[1].bytes[uvIndex];
-        final int vValue = image.planes[2].bytes[uvIndex];
-        List rgbColor = yuv2rgb(yValue, uValue, vValue);
-        // Set the pixel color
-        imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2], 1);
+      img.Image imago = img.Image(height: height, width: width);
+      for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+          final int uvIndex =
+              uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
+          final int index = y * width + x;
+          final int yValue = image.planes[0].bytes[index];
+          final int uValue = image.planes[1].bytes[uvIndex];
+          final int vValue = image.planes[2].bytes[uvIndex];
+          List rgbColor = [1, 2, 4];
+          imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2], 1);
+        }
       }
-    }
-    // Resize the image to 416x416
-    img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
-    Float32List modelInput = Float32List(1 * 416 * 416 * 3);
+      img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
+      Float32List modelInput = Float32List(1 * 416 * 416 * 3);
 
-    int pixelIndex = 0;
-    for (int i = 0; i < 416; i++) {
-      for (int j = 0; j < 416; j++) {
-        var pixel = resizedImage.getPixelSafe(i, j);
-        modelInput[pixelIndex] = pixel.r / 255.0;
-        modelInput[pixelIndex + 1] = pixel.g / 255.0;
-        modelInput[pixelIndex + 2] = pixel.b / 255.0;
-        pixelIndex += 3;
+      int pixelIndex = 0;
+      for (int i = 0; i < 416; i++) {
+        for (int j = 0; j < 416; j++) {
+          var pixel = resizedImage.getPixelSafe(i, j);
+          modelInput[pixelIndex] = pixel.r / 255.0;
+          modelInput[pixelIndex + 1] = pixel.g / 255.0;
+          modelInput[pixelIndex + 2] = pixel.b / 255.0;
+          pixelIndex += 3;
+        }
       }
-    }
 
-    return modelInput;
+      return modelInput;
+    } catch (e) {
+      print('its the convert function;');
+      print(e);
+      return Float32List(3);
+    }
   }
 
   void processInferenceResults(List<dynamic> output) {
@@ -258,16 +220,6 @@ class _CameraAppState extends State<CameraApp> {
       print('Error: ${e.code}\n${e.description}');
       return;
     }
-  }
-
-  Future<void> _saveImage(List<int> _imageBytes) async {
-    counter++;
-    final directory = await getApplicationDocumentsDirectory();
-    final imagePath = '${directory.path}/frame${counter}.png';
-    lastSaved = imagePath;
-    final imageFile = File(imagePath);
-    await imageFile.writeAsBytes(_imageBytes);
-    print('Image saved to: $imagePath');
   }
 
   void capture() async {
@@ -382,31 +334,45 @@ class _CameraAppState extends State<CameraApp> {
   }
 }
 
-Uint8List yuv2rgb(int y, int u, int v) {
-  double yd = y.toDouble();
-  double ud = u.toDouble() - 128.0;
-  double vd = v.toDouble() - 128.0;
-  double r = yd + 1.402 * vd;
-  double g = yd - 0.344136 * ud - 0.714136 * vd;
-  double b = yd + 1.772 * ud;
-  r = r.clamp(0, 255).roundToDouble();
-  g = g.clamp(0, 255).roundToDouble();
-  b = b.clamp(0, 255).roundToDouble();
-  return Uint8List.fromList([r.toInt(), g.toInt(), b.toInt()]);
-}
+class ImageUtils {
+  /// Converts a [CameraImage] in YUV420 format to [imageLib.Image] in RGB format
+  static img.Image convertYUV420ToImage(CameraImage cameraImage) {
+    final int width = cameraImage.width;
+    final int height = cameraImage.height;
 
-TensorImage getProcessedImage(TensorImage inputImage) {
-  int padSize;
-  padSize = max(inputImage.height, inputImage.width);
+    final int uvRowStride = cameraImage.planes[1].bytesPerRow;
+    final int uvPixelStride = cameraImage.planes[1].bytesPerPixel!;
 
-  // create ImageProcessor
-  ImageProcessor imageProcessor = ImageProcessorBuilder()
-      // Padding the image
-      .add(ResizeWithCropOrPadOp(padSize, padSize))
-      // Resizing to input size
-      .add(ResizeOp(419, 419, ResizeMethod.BILINEAR))
-      .build();
+    final image = img.Image(width: width, height: height);
 
-  inputImage = imageProcessor.process(inputImage);
-  return inputImage;
+    for (int w = 0; w < width; w++) {
+      for (int h = 0; h < height; h++) {
+        final int uvIndex =
+            uvPixelStride * (w / 2).floor() + uvRowStride * (h / 2).floor();
+        final int index = h * width + w;
+
+        final y = cameraImage.planes[0].bytes[index];
+        final u = cameraImage.planes[1].bytes[uvIndex];
+        final v = cameraImage.planes[2].bytes[uvIndex];
+
+        image.setPixelIndex(w, h, yuv2rgb(y, u, v));
+      }
+    }
+    return image;
+  }
+
+  static int yuv2rgb(int y, int u, int v) {
+    int r = (y + v * 1436 / 1024 - 179).round();
+    int g = (y - u * 46549 / 131072 + 44 - v * 93604 / 131072 + 91).round();
+    int b = (y + u * 1814 / 1024 - 227).round();
+
+    r = r.clamp(0, 255);
+    g = g.clamp(0, 255);
+    b = b.clamp(0, 255);
+
+    return 0xff000000 |
+        ((b << 16) & 0xff0000) |
+        ((g << 8) & 0xff00) |
+        (r & 0xff);
+  }
 }
