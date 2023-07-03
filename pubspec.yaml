@@ -35,21 +35,25 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
-  camera: ^0.8.1
+  camera: ^0.10.5
   video_player: ^2.6.1
   opencv_4: ^1.0.0
-  image: ^3.2.0
+  image: ^4.0.17
   get: ^4.6.5
   image_gallery_saver: ^1.7.1
   permission_handler: ^10.2.0
   flutter_image: ^4.1.5
   fl_chart: ^0.62.0
   shared_preferences: ^2.1.1
-  flutter_launcher_icons: ^0.9.2
+  flutter_launcher_icons: ^0.12.0
   scidart: ^0.0.2-dev.12
   ml_linalg: ^13.11.31
-  tflite_flutter: ^0.10.1
+  tflite_flutter: ^0.9.1
   path_provider: ^2.0.15
+  tflite_flutter_helper:
+    git:
+      url: https://github.com/pnyompen/tflite_flutter_helper.git
+      ref: 43e87d4b9627539266dc20250beb35bf36320dce
 
 dev_dependencies:
   flutter_test:
@@ -66,7 +70,7 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "Assets\\appIcon.PNG"
+  image_path: "assets\\appIcon.PNG"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -74,14 +78,14 @@ flutter_icons:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - Assets/model.tflite
-    - Assets/BasketButton.png
+    - assets/model.tflite
+    - assets/BasketButton.png
 
 
   fonts: 
     - family: Dogica
       fonts:
-      - asset: Assets\dogica\TTF\dogicapixel.ttf
+      - asset: assets\dogica\TTF\dogicapixel.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

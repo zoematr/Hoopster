@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
+import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -22,7 +23,7 @@ int Hit = 0;
 int Miss = 0;
 var height;
 var width;
-late tfl.IsolateInterpreter isolate;
+//late tfl.IsolateInterpreter isolate;
 late tfl.Interpreter interpreter;
 
 class CameraApp extends StatefulWidget {
@@ -40,12 +41,12 @@ class _CameraAppState extends State<CameraApp> {
     super.initState();
     controller = CameraController(
       cameras.last,
-      ResolutionPreset.medium,
+      ResolutionPreset.low,
     );
     // Initiate the loading of the model
 
-    loadModel().then((interpreter) async {
-      isolate = await tfl.IsolateInterpreter(address: interpreter.address);
+    loadModel().then((interpreter) {
+      //isolate = tfl.IsolateInterpreter(address: interpreter.address);
       _initializeControllerFuture = controller.initialize().then((_) {
         controller.startImageStream((image) {
           _cameraFrameProcessing(image, interpreter);
@@ -75,7 +76,10 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset('Assets/model.tflite');
+    return tfl.Interpreter.fromAsset(
+      'model.tflite',
+      options: tfl.InterpreterOptions()..threads = 4,
+    );
   }
 
   Future<void> processCameraFrame(
@@ -85,6 +89,7 @@ class _CameraAppState extends State<CameraApp> {
       Float32List convertedImage = convertCameraImage(image);
       // Create output tensor. Assuming model has a single output
       var output = interpreter.getOutputTensor(0).shape;
+
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
       //print(inputShape);
@@ -117,10 +122,11 @@ class _CameraAppState extends State<CameraApp> {
 
       // Run inference on the frame
 
-      await isolate.run(inputTensor, {0: output});
+      //await isolate.run(inputTensor, {0: output});
+
       //isolate.close();
-      //interpreter.run(inputTensor, {0: output});
-      print(output);
+      //interpreter.close();
+      interpreter.run(inputTensor, {0: output});
       // Process the inference results
       //print("here2, line 120");
       //processInferenceResults(output);
@@ -132,12 +138,12 @@ class _CameraAppState extends State<CameraApp> {
 
   Float32List convertCameraImage(CameraImage image) {
     print('converting image');
-    final width = image.width;
-    final height = image.height;
+    var width = image.width;
+    var height = image.height;
     final int uvRowStride = image.planes[1].bytesPerRow;
     final int? uvPixelStride = image.planes[1].bytesPerPixel;
     // Create an Image buffer
-    img.Image imago = img.Image(width, height);
+    img.Image imago = img.Image(height: height, width: width);
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
         final int uvIndex =
@@ -148,25 +154,24 @@ class _CameraAppState extends State<CameraApp> {
         final int vValue = image.planes[2].bytes[uvIndex];
         List rgbColor = yuv2rgb(yValue, uValue, vValue);
         // Set the pixel color
-        imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2]);
+        imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2], 1);
       }
     }
     // Resize the image to 416x416
     img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
     Float32List modelInput = Float32List(1 * 416 * 416 * 3);
-    // Copy the resized RGB image data into the model input
+
     int pixelIndex = 0;
     for (int i = 0; i < 416; i++) {
       for (int j = 0; j < 416; j++) {
-        int pixel = resizedImage.getPixel(i, j);
-        modelInput[pixelIndex] = img.getRed(pixel) / 255.0;
-        modelInput[pixelIndex + 1] = img.getGreen(pixel) / 255.0;
-        modelInput[pixelIndex + 2] = img.getBlue(pixel) / 255.0;
+        var pixel = resizedImage.getPixelSafe(i, j);
+        modelInput[pixelIndex] = pixel.r / 255.0;
+        modelInput[pixelIndex + 1] = pixel.g / 255.0;
+        modelInput[pixelIndex + 2] = pixel.b / 255.0;
         pixelIndex += 3;
       }
     }
-    print('finished converting image');
-    // Now you can use modelInput as the input to your model
+
     return modelInput;
   }
 
@@ -199,7 +204,6 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void dispose() {
     controller.dispose();
-    isolate.close();
     super.dispose();
   }
 
@@ -266,8 +270,8 @@ class _CameraAppState extends State<CameraApp> {
       img.Image image = _cameraImage as img.Image;
       var input = [1, 13, 13, 3];
       //img.Image image = convertCameraImage(_cameraImage);
-      img.Image Rimage = img.copyRotate(image, 90);
-      _saveImage(Rimage.data);
+      img.Image Rimage = img.copyRotate(image, angle: 90);
+      //_saveImage(Rimage.data);
       // Convert the image to RGB format using image package
       // img.Image image = img.Image.fromBytes(
       //   _cameraImage.width,
