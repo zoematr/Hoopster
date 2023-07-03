@@ -109,8 +109,6 @@ class _CameraAppState extends State<CameraApp> {
 """;
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
-      print('die input shape is so lang');
-      print(inputShape.length);
 
       var inputTensor = <List<List<List<dynamic>>>>[
         List.generate(inputShape[0], (_) {
@@ -121,7 +119,8 @@ class _CameraAppState extends State<CameraApp> {
           });
         })
       ];
-
+      print(inputTensor.shape);
+      print(convertedImage.length)
       // Copy the convertedImage data into the inputTensor
 // Copy the convertedImage data into the inputTensor
       for (int i = 0; i < convertedImage.length; i++) {
@@ -130,10 +129,11 @@ class _CameraAppState extends State<CameraApp> {
         index = index ~/ 3;
         int x = index % 416;
         index = index ~/ 416;
+        int y = index % 416;
 
-        int y = index;
         inputTensor[0][y][x][c] = convertedImage[i];
       }
+
       print(inputTensor.shape);
 
       // Run inference on the frame
