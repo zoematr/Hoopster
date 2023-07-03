@@ -87,10 +87,9 @@ class _CameraAppState extends State<CameraApp> {
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
       // Convert the CameraImage to a byte buffer
+
       Float32List convertedImage = convertCameraImage(image);
       List<List<int>> _outputShapes;
-
-      /// Types of output tensors
       List<tfl.TfLiteType> _outputTypes;
       var outputTensors = interpreter.getOutputTensors();
       _outputShapes = [];
@@ -100,7 +99,7 @@ class _CameraAppState extends State<CameraApp> {
         _outputTypes.add(tensor.type);
       });
       // Create output tensor. Assuming model has a single output
-      var output = interpreter.getOutputTensor(0).shape;
+
       TensorBuffer outputLocations = TensorBufferFloat(_outputShapes[0]);
       TensorBuffer outputClasses = TensorBufferFloat(_outputShapes[1]);
       TensorBuffer outputScores = TensorBufferFloat(_outputShapes[2]);
@@ -131,18 +130,15 @@ class _CameraAppState extends State<CameraApp> {
         _outputShapes.add(tensor.shape);
         _outputTypes.add(tensor.type);
       });
-      print("mamaaaaaa");
-      print(inputShape);
-      print(convertedImage.shape);
-      print(inputTensor.shape);
+
       // Copy the convertedImage data into the inputTensor
 // Copy the convertedImage data into the inputTensor
       for (int i = 0; i < convertedImage.length; i++) {
         int index = i;
         int c = index % 3;
         index = index ~/ 3;
-        int x = index % 416;
-        index = index ~/ 416;
+        int x = index % 512;
+        index = index ~/ 512;
 
         int y = index;
         inputTensor[0][y][x][c] = convertedImage[i];
@@ -154,24 +150,23 @@ class _CameraAppState extends State<CameraApp> {
 
       //isolate.close();
       //interpreter.close();
-      interpreter.run(inputTensor, {0: output});
+      interpreter.runForMultipleInputs(inputTensor, outputs);
+      print(outputs);
       // Process the inference results
       //print("here2, line 120");
       //processInferenceResults(output);
     } catch (e) {
       print('Failed to run model on frame: $e');
     }
-    print('done executing');
   }
 
   Float32List convertCameraImage(CameraImage image) {
-    print('converting image');
     var width = image.width;
     var height = image.height;
     final int uvRowStride = image.planes[1].bytesPerRow;
     final int? uvPixelStride = image.planes[1].bytesPerPixel;
     // Create an Image buffer
-    print(image.planes.length);
+
     img.Image imago = img.Image(height: height, width: width);
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
@@ -187,12 +182,12 @@ class _CameraAppState extends State<CameraApp> {
       }
     }
     // Resize the image to 416x416
-    img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
-    Float32List modelInput = Float32List(1 * 416 * 416 * 3);
+    img.Image resizedImage = img.copyResize(imago, width: 512, height: 512);
+    Float32List modelInput = Float32List(1 * 512 * 512 * 3);
 
     int pixelIndex = 0;
-    for (int i = 0; i < 416; i++) {
-      for (int j = 0; j < 416; j++) {
+    for (int i = 0; i < 512; i++) {
+      for (int j = 0; j < 512; j++) {
         var pixel = resizedImage.getPixelSafe(i, j);
         modelInput[pixelIndex] = pixel.r / 255.0;
         modelInput[pixelIndex + 1] = pixel.g / 255.0;
@@ -205,8 +200,6 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   void processInferenceResults(List<dynamic> output) {
-    print('test');
-    print(output.toString());
     // Process the inference output to get the labels and their coordinates
     List<Map<String, dynamic>> labels = [];
     for (dynamic label in output) {
@@ -252,7 +245,7 @@ class _CameraAppState extends State<CameraApp> {
             '${now.year}-${now.month}-${now.day} ${now.hour}-${now.minute}-${now.second}';
         final fileName = 'hoopster_${formattedDate}.mp4';
         final path = '${Directory.systemTemp.path}/$fileName';
-        print(path);
+
         //await controller.startVideoRecording();
       }
     } catch (e) {
