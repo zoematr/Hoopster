@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:math';
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -17,9 +18,8 @@ import '../main.dart';
 import 'home_screen.dart';
 import 'dart:isolate';
 
-late Isolate isolate;
-late ReceivePort _receivePort;
-SendPort? _sendPort;
+//late Isolate isolate;
+//late ReceivePort _receivePort;
 
 int i = 0;
 late CameraImage _cameraImage;
@@ -29,6 +29,7 @@ int Hit = 0;
 int Miss = 0;
 var height;
 var width;
+List<int> intshape = [];
 
 class CameraApp extends StatefulWidget {
   const CameraApp({Key? key}) : super(key: key);
@@ -41,6 +42,11 @@ class _CameraAppState extends State<CameraApp> {
   late CameraController controller;
   late Future<void> _initializeControllerFuture;
   String _videoPath = '';
+  //late Isolate _isolate;
+  //ReceivePort _receivePort = ReceivePort();
+  //late SendPort _sendPort;
+
+  //SendPort get sendPort => _sendPort;
 
   @override
   void initState() {
@@ -51,7 +57,12 @@ class _CameraAppState extends State<CameraApp> {
     );
 
     // Initiate the loading of the model
-    loadModel().then((interpreter) {
+    loadModel().then((interpreter) async {
+      //intshape= interpreter.getOutputTensor(0).shape;
+      //_receivePort = ReceivePort();
+      print("6");
+      //_sendPort = await _receivePort.first;
+
       // Model has been loaded at this point
       _initializeControllerFuture = controller.initialize().then((_) {
         controller.startImageStream((image) {
@@ -75,179 +86,6 @@ class _CameraAppState extends State<CameraApp> {
         }
       });
     });
-  }
-
-  //void mainHandler(dynamic data, SendPort isolateSendPort) {}
-
-  //void isolateHandler(
-  //  dynamic data, SendPort mainSendPort, SendErrorFunction onSendError) {}
-
-  void _cameraFrameProcessing(
-      CameraImage image, tfl.Interpreter interpreter) async {
-    setState(() {
-      _cameraImage = image;
-    });
-    // Worker W = Worker();
-    //Isolate.run(()async {processCameraFrame(image,interpreter);});7
-    //_isolate.pause();
-    _receivePort = ReceivePort();
-    _sendPort = await _receivePort.first;
-    isolate = await Isolate.spawn(_isolateHandler, _receivePort.sendPort);
-    _sendToIsolate({'image': image, 'interpreter': interpreter});
-  }
-
-  void _sendToIsolate(Map<String, dynamic> data) async {
-    // Create the isolate the first time that this function is called.
-    if (isolate == null) {
-      
-    }
-
-    _sendPort!.send(data);
-  }
-
-  void _isolateHandler(SendPort sendPort) {
-    print("3");
-    final port = ReceivePort();
-    sendPort.send(port.sendPort);
-    print("2");
-
-    port.listen((message) {
-      print("4");
-      CameraImage image = message['image'];
-      tfl.Interpreter interpreter = message['interpreter'];
-      processCameraFrame(image,
-          interpreter); // Assuming processCameraFrame is a static function
-    });
-    print("4");
-  }
-
-  /* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
-    processCameraFrame(im,interpreter_);
-  }*/
-
-  Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset('Assets\\model.tflite');
-  }
-
-  Future<void> processCameraFrame(
-      CameraImage image, tfl.Interpreter interpreter) async {
-    try {
-      // Convert the CameraImage to a byte buffer
-      Float32List convertedImage = convertCameraImage(image);
-
-      // Create output tensor. Assuming model has a single output
-      var outputshape = interpreter.getOutputTensor(0).shape;
-      var output = List.generate(
-          1,
-          (_) => List.generate(
-              13,
-              (_) => List.generate(
-                  13, (_) => List.generate(35, (_) => 0 as dynamic))));
-
-      // Create input tensor with the desired shape
-      var inputShape = interpreter.getInputTensor(0).shape;
-      //print(inputShape);
-      //var inputShape = [1, 13, 13, 35];
-      var inputTensor = <List<List<List<dynamic>>>>[
-        List.generate(inputShape[1], (_) {
-          return List.generate(inputShape[2], (_) {
-            return List.generate(inputShape[3], (_) {
-              return 0.0; // Placeholder value, modify this according to your needs
-            });
-          });
-        })
-      ];
-
-      // Copy the convertedImage data into the inputTensor
-// Copy the convertedImage data into the inputTensor
-      for (int i = 0; i < convertedImage.length; i++) {
-        int index = i;
-        int c = index % 3;
-        index = index ~/ 3;
-        int x = index % 416;
-        index = index ~/ 416;
-        int y = index;
-
-        inputTensor[0][y][x][c] = convertedImage[i];
-      }
-
-      // Run inference on the frame
-      interpreter.run(inputTensor, {0: output});
-
-      // Process the inference results
-      //print("here2, line 120");
-      processInferenceResults(output);
-    } catch (e) {
-      print('Failed to run model on frame: $e');
-    }
-  }
-
-  Float32List convertCameraImage(CameraImage image) {
-    final width = image.width;
-    final height = image.height;
-    final int uvRowStride = image.planes[1].bytesPerRow;
-    final int? uvPixelStride = image.planes[1].bytesPerPixel;
-
-    // Create an Image buffer
-    img.Image imago = img.Image(width, height);
-
-    for (int x = 0; x < width; x++) {
-      for (int y = 0; y < height; y++) {
-        final int uvIndex =
-            uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
-        final int index = y * width + x;
-
-        final int yValue = image.planes[0].bytes[index];
-        final int uValue = image.planes[1].bytes[uvIndex];
-        final int vValue = image.planes[2].bytes[uvIndex];
-
-        List rgbColor = yuv2rgb(yValue, uValue, vValue);
-        // Set the pixel color
-        imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2]);
-      }
-    }
-
-    // Resize the image to 416x416
-    img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
-
-    Float32List modelInput = Float32List(1 * 416 * 416 * 3);
-
-    // Copy the resized RGB image data into the model input
-    int pixelIndex = 0;
-    for (int i = 0; i < 416; i++) {
-      for (int j = 0; j < 416; j++) {
-        int pixel = resizedImage.getPixel(i, j);
-
-        modelInput[pixelIndex] = img.getRed(pixel) / 255.0;
-        modelInput[pixelIndex + 1] = img.getGreen(pixel) / 255.0;
-        modelInput[pixelIndex + 2] = img.getBlue(pixel) / 255.0;
-        pixelIndex += 3;
-      }
-    }
-
-    // Now you can use modelInput as the input to your model
-    return modelInput;
-  }
-
-  void processInferenceResults(List<List<List<List<dynamic>>>> output) {
-    // Assuming the output is a 4D tensor with dimensions [1, 13, 13, 35]
-
-    for (int i = 0; i < output.length; i++) {
-      // Looping through dimension 1
-      for (int j = 0; j < output[i].length; j++) {
-        // Looping through dimension 2
-        for (int k = 0; k < output[i][j].length; k++) {
-          // Looping through dimension 3
-          for (int l = 0; l < output[i][j][k].length; l++) {
-            // Looping through dimension 4
-            // Perform processing on each element at output[i][j][k][l]
-            var element = output[i][j][k][l];
-            print(element);
-            // Based on your TensorFlow model's output, you will have to decide what kind of processing is required here.
-          }
-        }
-      }
-    }
   }
 
   @override
@@ -296,16 +134,6 @@ class _CameraAppState extends State<CameraApp> {
       print('Error: ${e.code}\n${e.description}');
       return;
     }
-  }
-
-  Future<void> _saveImage(List<int> _imageBytes) async {
-    counter++;
-    final directory = await getApplicationDocumentsDirectory();
-    final imagePath = '${directory.path}/frame${counter}.png';
-    lastSaved = imagePath;
-    final imageFile = File(imagePath);
-    await imageFile.writeAsBytes(_imageBytes);
-    print('Image saved to: $imagePath');
   }
 
   void capture() async {
@@ -439,4 +267,224 @@ Uint8List yuv2rgb(int y, int u, int v) {
   b = b.clamp(0, 255).roundToDouble();
 
   return Uint8List.fromList([r.toInt(), g.toInt(), b.toInt()]);
+}
+
+Uint8List getImageBytes(CameraImage image) {
+  // Determine the number of bytes needed to store the image data
+  int imageSize =
+      image.planes.fold(0, (prev, plane) => prev + plane.bytes.length);
+
+  // Create a Uint8List with the determined size
+  Uint8List imageBytes = Uint8List(imageSize);
+
+  // Concatenate the bytes from each plane into the final image bytes
+  int offset = 0;
+  for (var plane in image.planes) {
+    imageBytes.setRange(offset, offset + plane.bytes.length, plane.bytes);
+    offset += plane.bytes.length;
+  }
+
+  return imageBytes;
+}
+
+//void mainHandler(dynamic data, SendPort isolateSendPort) {}
+
+//void isolateHandler(
+//  dynamic data, SendPort mainSendPort, SendErrorFunction onSendError) {}
+int countefr = 0;
+void _cameraFrameProcessing(
+    CameraImage image, tfl.Interpreter interpreter) async {
+  _cameraImage = image;
+  countefr++;
+
+  //7
+  //print("5");
+  Uint8List im = getImageBytes(_cameraImage);
+  // Worker W = Worker();
+  //Isolate.run(()async {processCameraFrame(image,interpreter);});7
+  //_isolate.pause();
+  /*try {*/
+  print("7");
+  if(countefr%10==0){var f =
+      await compute(processCameraFrame, [_cameraImage, interpreter.address]);
+}
+  
+  /*_isolate = await Isolate.spawn(
+      _isolateHandler,
+      _receivePort.sendPort,
+    );
+      //isolate = await Isolate.spawn(_isolateHandler, _receivePort.sendPort);
+      print("8");
+      _sendToIsolate({'image': image, 'interpreter': interpreter}, _sendPort!);
+      print("9");*/
+  /*} catch (e) {
+    print("fuck you $e");
+  }*/
+}
+
+/* void _sendToIsolate(Map<String, dynamic> data, SendPort _send) async {
+    // Create the isolate the first time that this function is called.
+
+    _send.send(data);
+  }
+
+  void _isolateHandler(SendPort sendPort) {
+    print("3");
+    final port = ReceivePort();
+    sendPort.send(port.sendPort);
+    print("2");
+
+    port.listen((message) {
+      print("4");
+      CameraImage image = message['image'];
+      tfl.Interpreter interpreter =
+          tfl.Interpreter.fromAddress(message['interpreter']);
+      //processCameraFrame(image,interpreter); // Assuming processCameraFrame is a static function
+    });
+    print("4");
+  }*/
+
+/* FutureOr<void> startModel(CameraImage im, tfl.Interpreter interpreter_){
+    processCameraFrame(im,interpreter_);
+  }*/
+
+Future<tfl.Interpreter> loadModel() async {
+  return tfl.Interpreter.fromAsset('Assets\\model.tflite');
+}
+
+Future<void> processCameraFrame(List<dynamic> l) {
+  //mage image = img.Image.fromBytes(8, 7, l[0]);
+  print("your mom is sooooooooooooo coolq");
+  CameraImage image = l[0];
+  tfl.Interpreter interpreter = tfl.Interpreter.fromAddress(l[1]);
+
+  try {
+    // Convert the CameraImage to a byte buffer
+    Float32List convertedImage = convertCameraImage(image);
+
+    // Create output tensor. Assuming model has a single output
+    var outputshape = interpreter.getOutputTensor(0).shape;
+    var output = List.generate(
+        1,
+        (_) => List.generate(
+            13,
+            (_) => List.generate(
+                13, (_) => List.generate(35, (_) => 0 as dynamic))));
+
+    // Create input tensor with the desired shape
+    var inputShape = interpreter.getInputTensor(0).shape;
+    //print(inputShape);
+    //var inputShape = [1, 13, 13, 35];
+    var inputTensor = <List<List<List<dynamic>>>>[
+      List.generate(inputShape[1], (_) {
+        return List.generate(inputShape[2], (_) {
+          return List.generate(inputShape[3], (_) {
+            return 0.0; // Placeholder value, modify this according to your needs
+          });
+        });
+      })
+    ];
+
+    // Copy the convertedImage data into the inputTensor
+// Copy the convertedImage data into the inputTensor
+    for (int i = 0; i < convertedImage.length; i++) {
+      int index = i;
+      int c = index % 3;
+      index = index ~/ 3;
+      int x = index % 416;
+      index = index ~/ 416;
+      int y = index;
+
+      inputTensor[0][y][x][c] = convertedImage[i];
+    }
+
+    // Run inference on the frame
+    interpreter.run(inputTensor, {0: output});
+
+    // Process the inference results
+    //print("here2, line 120");
+    processInferenceResults(output);
+  } catch (e) {
+    print('Failed to run model on frame: $e');
+  }
+  //return 5;
+  return Future(() => null);
+}
+
+Float32List convertCameraImage(CameraImage image) {
+  final width = image.width;
+  final height = image.height;
+  final int uvRowStride = image.planes[1].bytesPerRow;
+  final int? uvPixelStride = image.planes[1].bytesPerPixel;
+
+  // Create an Image buffer
+  img.Image imago = img.Image(width, height);
+
+  for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) {
+      final int uvIndex =
+          uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
+      final int index = y * width + x;
+
+      final int yValue = image.planes[0].bytes[index];
+      final int uValue = image.planes[1].bytes[uvIndex];
+      final int vValue = image.planes[2].bytes[uvIndex];
+
+      List rgbColor = yuv2rgb(yValue, uValue, vValue);
+      // Set the pixel color
+      imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2]);
+    }
+  }
+
+  // Resize the image to 416x416
+  img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
+
+  Float32List modelInput = Float32List(1 * 416 * 416 * 3);
+
+  // Copy the resized RGB image data into the model input
+  int pixelIndex = 0;
+  for (int i = 0; i < 416; i++) {
+    for (int j = 0; j < 416; j++) {
+      int pixel = resizedImage.getPixel(i, j);
+
+      modelInput[pixelIndex] = img.getRed(pixel) / 255.0;
+      modelInput[pixelIndex + 1] = img.getGreen(pixel) / 255.0;
+      modelInput[pixelIndex + 2] = img.getBlue(pixel) / 255.0;
+      pixelIndex += 3;
+    }
+  }
+
+  // Now you can use modelInput as the input to your model
+  return modelInput;
+}
+
+void processInferenceResults(List<List<List<List<dynamic>>>> output) {
+  // Assuming the output is a 4D tensor with dimensions [1, 13, 13, 35]
+
+  for (int i = 0; i < output.length; i++) {
+    // Looping through dimension 1
+    for (int j = 0; j < output[i].length; j++) {
+      // Looping through dimension 2
+      for (int k = 0; k < output[i][j].length; k++) {
+        // Looping through dimension 3
+        for (int l = 0; l < output[i][j][k].length; l++) {
+          // Looping through dimension 4
+          // Perform processing on each element at output[i][j][k][l]
+          var element = output[i][j][k][l];
+          //print(element);
+          // Based on your TensorFlow model's output, you will have to decide what kind of processing is required here.
+        }
+      }
+    }
+  }
+}
+
+Future<void> _saveImage(List<int> _imageBytes) async {
+  counter++;
+  final directory = await getApplicationDocumentsDirectory();
+  final imagePath = '${directory.path}/frame${counter}.png';
+  lastSaved = imagePath;
+  final imageFile = File(imagePath);
+  await imageFile.writeAsBytes(_imageBytes);
+  print('Image saved to: $imagePath');
 }
