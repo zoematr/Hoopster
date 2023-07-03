@@ -79,8 +79,9 @@ flutter_icons:
 flutter:
   assets:
     - assets/model.tflite
+    - assets/detect.tflite
     - assets/BasketButton.png
-
+  
 
   fonts: 
     - family: Dogica

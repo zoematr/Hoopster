@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
+import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
@@ -23,7 +24,7 @@ int Hit = 0;
 int Miss = 0;
 var height;
 var width;
-const int INPUT_SIZE = 419;
+const int INPUT_SIZE = 416;
 //late tfl.IsolateInterpreter isolate;
 late tfl.Interpreter interpreter;
 
@@ -44,7 +45,6 @@ class _CameraAppState extends State<CameraApp> {
       cameras.last,
       ResolutionPreset.low,
     );
-    // Initiate the loading of the model
 
     loadModel().then((interpreter) {
       //isolate = tfl.IsolateInterpreter(address: interpreter.address);
@@ -91,17 +91,13 @@ class _CameraAppState extends State<CameraApp> {
       Float32List convertedImage = convertCameraImage(image);
       List<List<int>> _outputShapes;
       List<tfl.TfLiteType> _outputTypes;
-      var outputTensors = interpreter.getOutputTensors();
+      var outputTensors = interpreter.getOutputTensor(0);
       _outputShapes = [];
       _outputTypes = [];
-      outputTensors.forEach((tensor) {
-        _outputShapes.add(tensor.shape);
-        _outputTypes.add(tensor.type);
-      });
-      // Create output tensor. Assuming model has a single output
 
+      TensorBuffer outputClasses = TensorBufferFloat(outputTensors.shape);
+      String k = """
       TensorBuffer outputLocations = TensorBufferFloat(_outputShapes[0]);
-      TensorBuffer outputClasses = TensorBufferFloat(_outputShapes[1]);
       TensorBuffer outputScores = TensorBufferFloat(_outputShapes[2]);
       TensorBuffer numLocations = TensorBufferFloat(_outputShapes[3]);
       Map<int, Object> outputs = {
@@ -110,26 +106,21 @@ class _CameraAppState extends State<CameraApp> {
         2: outputScores.buffer,
         3: numLocations.buffer,
       };
+""";
       // Create input tensor with the desired shape
       var inputShape = interpreter.getInputTensor(0).shape;
-      //print(inputShape);
-      //var inputShape = [1, 13, 13, 35];
+      print('die input shape is so lang');
+      print(inputShape.length);
+
       var inputTensor = <List<List<List<dynamic>>>>[
-        List.generate(inputShape[1], (_) {
-          return List.generate(inputShape[2], (_) {
-            return List.generate(inputShape[3], (_) {
+        List.generate(inputShape[0], (_) {
+          return List.generate(inputShape[1], (_) {
+            return List.generate(inputShape[2], (_) {
               return 0.0; // Placeholder value, modify this according to your needs
             });
           });
         })
       ];
-
-      _outputShapes = [];
-      _outputTypes = [];
-      outputTensors.forEach((tensor) {
-        _outputShapes.add(tensor.shape);
-        _outputTypes.add(tensor.type);
-      });
 
       // Copy the convertedImage data into the inputTensor
 // Copy the convertedImage data into the inputTensor
@@ -137,12 +128,13 @@ class _CameraAppState extends State<CameraApp> {
         int index = i;
         int c = index % 3;
         index = index ~/ 3;
-        int x = index % 512;
-        index = index ~/ 512;
+        int x = index % 416;
+        index = index ~/ 416;
 
         int y = index;
         inputTensor[0][y][x][c] = convertedImage[i];
       }
+      print(inputTensor.shape);
 
       // Run inference on the frame
 
@@ -150,8 +142,8 @@ class _CameraAppState extends State<CameraApp> {
 
       //isolate.close();
       //interpreter.close();
-      interpreter.runForMultipleInputs(inputTensor, outputs);
-      print(outputs);
+      interpreter.runForMultipleInputs(inputTensor, {0: outputClasses});
+      print(outputClasses);
       // Process the inference results
       //print("here2, line 120");
       //processInferenceResults(output);
@@ -182,12 +174,12 @@ class _CameraAppState extends State<CameraApp> {
       }
     }
     // Resize the image to 416x416
-    img.Image resizedImage = img.copyResize(imago, width: 512, height: 512);
-    Float32List modelInput = Float32List(1 * 512 * 512 * 3);
+    img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
+    Float32List modelInput = Float32List(1 * 416 * 416 * 3);
 
     int pixelIndex = 0;
-    for (int i = 0; i < 512; i++) {
-      for (int j = 0; j < 512; j++) {
+    for (int i = 0; i < 416; i++) {
+      for (int j = 0; j < 416; j++) {
         var pixel = resizedImage.getPixelSafe(i, j);
         modelInput[pixelIndex] = pixel.r / 255.0;
         modelInput[pixelIndex + 1] = pixel.g / 255.0;
