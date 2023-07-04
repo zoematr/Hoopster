@@ -111,48 +111,6 @@ class _CameraAppState extends State<CameraApp> {
     }
   }
 
-  Float32List convertCameraImage(CameraImage image) {
-    try {
-      var width = image.width;
-      var height = image.height;
-      final int uvRowStride = image.planes[1].bytesPerRow;
-      final int? uvPixelStride = image.planes[1].bytesPerPixel;
-
-      img.Image imago = img.Image(height: height, width: width);
-      for (int x = 0; x < width; x++) {
-        for (int y = 0; y < height; y++) {
-          final int uvIndex =
-              uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
-          final int index = y * width + x;
-          final int yValue = image.planes[0].bytes[index];
-          final int uValue = image.planes[1].bytes[uvIndex];
-          final int vValue = image.planes[2].bytes[uvIndex];
-          List rgbColor = [1, 2, 4];
-          imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2], 1);
-        }
-      }
-      img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
-      Float32List modelInput = Float32List(1 * 416 * 416 * 3);
-
-      int pixelIndex = 0;
-      for (int i = 0; i < 416; i++) {
-        for (int j = 0; j < 416; j++) {
-          var pixel = resizedImage.getPixelSafe(i, j);
-          modelInput[pixelIndex] = pixel.r / 255.0;
-          modelInput[pixelIndex + 1] = pixel.g / 255.0;
-          modelInput[pixelIndex + 2] = pixel.b / 255.0;
-          pixelIndex += 3;
-        }
-      }
-
-      return modelInput;
-    } catch (e) {
-      print('its the convert function;');
-      print(e);
-      return Float32List(3);
-    }
-  }
-
   void processInferenceResults(List<dynamic> output) {
     // Process the inference output to get the labels and their coordinates
     List<Map<String, dynamic>> labels = [];
