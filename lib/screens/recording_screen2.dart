@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hoopster/PermanentStorage.dart';
+import 'package:hoopster/screens/recording_screen2.dart';
 import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -26,7 +27,7 @@ int Miss = 0;
 var height;
 var width;
 const int INPUT_SIZE = 416;
-//late tfl.IsolateInterpreter isolate;
+
 late tfl.Interpreter interpreter;
 
 class CameraApp extends StatefulWidget {
@@ -48,7 +49,6 @@ class _CameraAppState extends State<CameraApp> {
     );
 
     loadModel().then((interpreter) {
-      //isolate = tfl.IsolateInterpreter(address: interpreter.address);
       _initializeControllerFuture = controller.initialize().then((_) {
         controller.startImageStream((image) {
           _cameraFrameProcessing(image, interpreter);
@@ -61,10 +61,8 @@ class _CameraAppState extends State<CameraApp> {
         if (e is CameraException) {
           switch (e.code) {
             case 'CameraAccessDenied':
-              // Handle access errors here.
               break;
             default:
-              // Handle other errors here.
               break;
           }
         }
@@ -74,7 +72,7 @@ class _CameraAppState extends State<CameraApp> {
 
   void _cameraFrameProcessing(CameraImage image, tfl.Interpreter interpreter) {
     _cameraImage = image;
-    processCameraFrame(image, interpreter); // Process each camera frame
+    processCameraFrame(image, interpreter);
   }
 
   Future<tfl.Interpreter> loadModel() async {
@@ -88,11 +86,11 @@ class _CameraAppState extends State<CameraApp> {
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
-      imago = resizeImageTo32(imago);
+      //imago = resizeImageTo32(imago);
+      imago = img.copyResize(imago, width: 512, height: 512);
       var tensorImage = TensorImage.fromImage(imago);
       tensorImage = ImageProcessorBuilder()
-          .add(ResizeOp(416, 416, ResizeMethod.NEAREST_NEIGHBOUR))
-          .add(NormalizeOp(0, 255))
+          .add(NormalizeOp(0, 1))
           .build()
           .process(tensorImage);
 
@@ -106,10 +104,6 @@ class _CameraAppState extends State<CameraApp> {
       print('ran interpreter');
       var outputResult = outputBuffer.getDoubleList();
       print(outputResult);
-
-      // Process the inference results
-      //print("here2, line 120");
-      //processInferenceResults(output);
     } catch (e) {
       print('Failed to run model on frame: $e');
     }
@@ -158,7 +152,6 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   void processInferenceResults(List<dynamic> output) {
-    // Process the inference output to get the labels and their coordinates
     List<Map<String, dynamic>> labels = [];
     for (dynamic label in output) {
       String text = label['label'];
@@ -174,11 +167,8 @@ class _CameraAppState extends State<CameraApp> {
       }
     }
     if (labels.isEmpty) {
-      // No recognitions found, do nothing
       return;
     }
-    // Do something with the filtered labels
-    // ...
   }
 
   @override
@@ -194,8 +184,6 @@ class _CameraAppState extends State<CameraApp> {
         setState(() {
           _videoPath = path as String;
         });
-        //processVideo(
-        //    _videoPath); // Pass the video path to the processing function
       } else {
         await _initializeControllerFuture;
         final now = DateTime.now();
@@ -203,8 +191,6 @@ class _CameraAppState extends State<CameraApp> {
             '${now.year}-${now.month}-${now.day} ${now.hour}-${now.minute}-${now.second}';
         final fileName = 'hoopster_${formattedDate}.mp4';
         final path = '${Directory.systemTemp.path}/$fileName';
-
-        //await controller.startVideoRecording();
       }
     } catch (e) {
       print(e);
@@ -212,11 +198,9 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   img.Image resizeImageTo32(img.Image originalImage) {
-    // Print original image dimensions
     print(
         'Original image dimensions: ${originalImage.width} x ${originalImage.height}');
 
-    // Calculate new dimensions as before
     bool isWidthSmaller = originalImage.width < originalImage.height;
     int newWidth;
     int newHeight;
@@ -231,14 +215,11 @@ class _CameraAppState extends State<CameraApp> {
           (originalImage.width / originalImage.height * newHeight).round();
     }
 
-    // Print new image dimensions
     print('Expected image dimensions: $newWidth x $newHeight');
 
-    // Resize image
     img.Image resizedImage =
         img.copyResize(originalImage, width: newWidth, height: newHeight);
 
-    // Print resized image dimensions (should be the same as expected)
     print(
         'Resized image dimensions: ${resizedImage.width} x ${resizedImage.height}');
 
@@ -264,29 +245,14 @@ class _CameraAppState extends State<CameraApp> {
     int _1 = Random().nextInt(20);
     int _2 = Random().nextInt(20);
     DateTime n = DateTime.now();
-    setState(() {
-      // allSessions.add(Session(n, _1, _2));
-      // lView = globalUpdate();
-    });
+    setState(() {});
     if (_cameraImage != null) {
       Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
       int b = 0;
       img.Image image = _cameraImage as img.Image;
       var input = [1, 13, 13, 3];
-      //img.Image image = convertCameraImage(_cameraImage);
+
       img.Image Rimage = img.copyRotate(image, angle: 90);
-      //_saveImage(Rimage.data);
-      // Convert the image to RGB format using image package
-      // img.Image image = img.Image.fromBytes(
-      //   _cameraImage.width,
-      //   _cameraImage.height,
-      //   _cameraImage.planes[0].bytes,
-      //   format: img.Format.yuv420,
-      // );
-      // img.Image Rimage = img.copyRotate(image, 90);
-      // _saveImage(Rimage.getBytes(format: img.Format.rgb));
-      // Run inference on the converted image
-      // Process the inference results
     }
   }
 
