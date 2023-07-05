@@ -86,27 +86,25 @@ class _CameraAppState extends State<CameraApp> {
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
-      //imago = resizeImageTo32(imago);
       imago = img.copyResize(imago, width: 416, height: 416);
-      var tensorImage = TensorImage.fromImage(imago);
-      tensorImage = ImageProcessorBuilder()
-          .add(NormalizeOp(0, 1))
-          .build()
-          .process(tensorImage);
+      Uint8List byteList = Uint8List.fromList(imago.getBytes());
+
+      Float32List floatList = Float32List(416 * 416 * 3);
+      for (var i = 0; i < byteList.length; i++) {
+        floatList[i] = byteList[i] / 255.0;
+      }
+
+      final imgReshaped = floatList.reshape([1, 416, 416, 3]);
 
       var outputShape = interpreter.getOutputTensor(0).shape;
       var outputType = interpreter.getOutputTensor(0).type;
       var outputBuffer = TensorBuffer.createFixedSize(outputShape, outputType);
-      final imgReshaped =
-          tensorImage.buffer.asFloat32List().reshape([1, 416, 416, 3]);
 
       interpreter.run(imgReshaped, outputBuffer.getBuffer());
       print('ran interpreter');
       var outputResult = outputBuffer.getDoubleList();
-      print(outputResult);
-    } catch (e) {
-      print('Failed to run model on frame: $e');
-    }
+      processInferenceResults(outputResult);
+    } catch (e) {}
   }
 
   Float32List convertCameraImage(CameraImage image) {
