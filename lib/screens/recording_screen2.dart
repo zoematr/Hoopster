@@ -105,7 +105,7 @@ class _CameraAppState extends State<CameraApp> {
       print('ran interpreter');
 
       var outputResult = outputBuffer.getDoubleList();
-      decodeTensor(outputResult, 0.45);
+      decodeTensor(outputResult, 0);
 
       //processInferenceResults(outputResult);
     } catch (e) {}

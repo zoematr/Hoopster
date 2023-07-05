@@ -51,7 +51,7 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
         double centerY = (sigmoid(ty) + y) / gridSize;
         double width = math.exp(tw) * anchors[2 * b] / gridSize;
         double height = math.exp(th) * anchors[2 * b + 1] / gridSize;
-
+        print(confidence);
         if (confidence > threshold) {
           double maxClassProb = 0;
           int classId = 0;
@@ -64,7 +64,6 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
           }
 
           double finalScore = confidence * maxClassProb;
-          print(finalScore);
           if (finalScore > threshold) {
             boxes.add(BoundingBox(
                 x: centerX,
