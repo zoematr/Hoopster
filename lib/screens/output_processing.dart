@@ -47,15 +47,12 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
         double th = tensor[index + 3];
         double confidence = sigmoid(tensor[index + 4]);
 
-        // Convert tx, ty, tw, th to center x, center y, width, height
         double centerX = (sigmoid(tx) + x) / gridSize;
         double centerY = (sigmoid(ty) + y) / gridSize;
         double width = math.exp(tw) * anchors[2 * b] / gridSize;
         double height = math.exp(th) * anchors[2 * b + 1] / gridSize;
 
-        // Only consider boxes with confidence score above threshold
         if (confidence > threshold) {
-          // Find class with max probability
           double maxClassProb = 0;
           int classId = 0;
           for (int c = 0; c < numClasses; c++) {
@@ -65,9 +62,9 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
               classId = c;
             }
           }
-          // Multiply confidence score with class score
-          double finalScore = confidence * maxClassProb;
 
+          double finalScore = confidence * maxClassProb;
+          print(finalScore);
           if (finalScore > threshold) {
             boxes.add(BoundingBox(
                 x: centerX,
@@ -81,6 +78,8 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
       }
     }
   }
-
+  for (var box in boxes) {
+    print(box.x);
+  }
   return boxes;
 }

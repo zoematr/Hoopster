@@ -17,6 +17,7 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import '../main.dart';
 import 'home_screen.dart';
+import 'output_processing.dart';
 
 int i = 0;
 late CameraImage _cameraImage;
@@ -102,8 +103,11 @@ class _CameraAppState extends State<CameraApp> {
 
       interpreter.run(imgReshaped, outputBuffer.getBuffer());
       print('ran interpreter');
+
       var outputResult = outputBuffer.getDoubleList();
-      processInferenceResults(outputResult);
+      decodeTensor(outputResult, 0.45);
+
+      //processInferenceResults(outputResult);
     } catch (e) {}
   }
 
