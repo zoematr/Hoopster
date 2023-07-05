@@ -87,7 +87,7 @@ class _CameraAppState extends State<CameraApp> {
     try {
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
       //imago = resizeImageTo32(imago);
-      imago = img.copyResize(imago, width: 512, height: 512);
+      imago = img.copyResize(imago, width: 416, height: 416);
       var tensorImage = TensorImage.fromImage(imago);
       tensorImage = ImageProcessorBuilder()
           .add(NormalizeOp(0, 1))
@@ -95,12 +95,12 @@ class _CameraAppState extends State<CameraApp> {
           .process(tensorImage);
 
       var outputShape = interpreter.getOutputTensor(0).shape;
-      print('outputShape');
       var outputType = interpreter.getOutputTensor(0).type;
-      print('outputtype');
       var outputBuffer = TensorBuffer.createFixedSize(outputShape, outputType);
-      print('outputbuffer');
-      interpreter.run(tensorImage.buffer, outputBuffer.getBuffer());
+      final imgReshaped =
+          tensorImage.buffer.asFloat32List().reshape([1, 416, 416, 3]);
+
+      interpreter.run(imgReshaped, outputBuffer.getBuffer());
       print('ran interpreter');
       var outputResult = outputBuffer.getDoubleList();
       print(outputResult);
