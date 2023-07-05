@@ -105,7 +105,7 @@ class _CameraAppState extends State<CameraApp> {
       print('ran interpreter');
 
       var outputResult = outputBuffer.getDoubleList();
-      var boxes = decodeTensor(outputResult, 0);
+      var boxes = decodeTensor(outputResult, 0.45);
       for (var box in boxes) {}
 
       //processInferenceResults(outputResult);
@@ -381,43 +381,5 @@ class ImageUtils {
         ((b << 16) & 0xff0000) |
         ((g << 8) & 0xff00) |
         (r & 0xff);
-  }
-}
-
-void drawBoundingBoxes(ui.Canvas canvas, ui.Size imageSize,
-    List<BoundingBox> boxes, List<String> classNames) {
-  final double scaleX = canvas.size.width / imageSize.width;
-  final double scaleY = canvas.size.height / imageSize.height;
-
-  for (final box in boxes) {
-    final left = box.x * scaleX;
-    final top = box.y * scaleY;
-    final right = (box.x + box.width) * scaleX;
-    final bottom = (box.y + box.height) * scaleY;
-
-    final rect = ui.Rect.fromLTRB(left, top, right, bottom);
-
-    // Draw bounding box
-    final paint = ui.Paint()
-      ..color = ui.Color.fromARGB(255, 255, 0, 0)
-      ..style = ui.PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawRect(rect, paint);
-
-    // Draw label
-    final label = classNames[box.classId];
-    final textPainter = ui.TextPainter(
-      text: ui.TextSpan(
-        text: label,
-        style: ui.TextStyle(
-          color: ui.Color.fromARGB(255, 255, 0, 0),
-          fontSize: 14.0,
-          fontWeight: ui.FontWeight.bold,
-        ),
-      ),
-      textDirection: ui.TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(canvas, ui.Offset(left, top - 16));
   }
 }
