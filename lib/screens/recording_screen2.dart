@@ -87,7 +87,7 @@ class _CameraAppState extends State<CameraApp> {
       CameraImage image, tfl.Interpreter interpreter) async {
     try {
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
-      imago = img.copyResize(imago, width: 416, height: 416);
+      imago = img.copyResizeCropSquare(imago, size: 416);
       Uint8List byteList = Uint8List.fromList(imago.getBytes());
 
       Float32List floatList = Float32List(416 * 416 * 3);
@@ -105,7 +105,7 @@ class _CameraAppState extends State<CameraApp> {
       print('ran interpreter');
 
       var outputResult = outputBuffer.getDoubleList();
-      var boxes = decodeTensor(outputResult, 0);
+      var boxes = decodeTensor(outputResult, 0.2);
       for (var box in boxes) {}
 
       //processInferenceResults(outputResult);
