@@ -23,7 +23,7 @@ import 'output_processing.dart';
 
 int i = 0;
 late CameraImage _cameraImage;
-
+bool isprocessing = false;
 List<BoundingBox> boxes = [];
 int counter = 0;
 String lastSaved = "";
@@ -83,13 +83,16 @@ class _CameraAppState extends State<CameraApp> {
 
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
     _cameraImage = image;
+    setState(() {});
     counterImage++;
 
-    if (counterImage % 10 == 0) {
+    if (counterImage % 10 == 0 && !isprocessing) {
+      isprocessing = true;
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
       imago = img.copyResizeCropSquare(imago, size: 416);
       Uint8List byteList = Uint8List.fromList(imago.getBytes());
       boxes = await compute(processCameraFrame, [byteList, address]);
+      isprocessing = false;
     }
   }
 
