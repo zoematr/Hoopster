@@ -78,15 +78,15 @@ flutter_icons:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - AssetsFolder\model.tflite
-    - AssetsFolder\detect.tflite
-    - AssetsFolder\BasketButton.png
+    - assets/model.tflite
+    - assets/detect.tflite
+    - assets/BasketButton.png
   
 
   fonts: 
     - family: Dogica
       fonts:
-      - asset: AssetsFolder\dogica\TTF\dogicapixel.ttf
+      - asset: assets/dogica/TTF/dogicapixel.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -22,7 +22,7 @@ import 'output_processing.dart';
 
 int i = 0;
 late CameraImage _cameraImage;
-List<Rect> boxes = [];
+List<BoundingBox> boxes = [];
 int counter = 0;
 String lastSaved = "";
 int Hit = 0;
@@ -89,7 +89,7 @@ class _CameraAppState extends State<CameraApp> {
 
   Future<tfl.Interpreter> loadModel() async {
     return tfl.Interpreter.fromAsset(
-      'AssetsFolder\\model.tflite',
+      'model.tflite',
       options: tfl.InterpreterOptions()..threads = 4,
     );
   }
@@ -301,8 +301,7 @@ Future<void> processCameraFrame(List<dynamic> l) async {
     print('ran interpreter');
 
     var outputResult = outputBuffer.getDoubleList();
-    var boxes = decodeTensor(outputResult, 0.2);
-    for (var box in boxes) {}
+    boxes = decodeTensor(outputResult, 0.2);
 
     //processInferenceResults(outputResult);
   } catch (e) {}
@@ -405,7 +404,7 @@ img.Image fromFltoIM(Float32List F32l) {
 }
 
 class RectanglePainter extends CustomPainter {
-  late List<Rect> topaint;
+  List<BoundingBox> topaint;
   RectanglePainter(this.topaint);
 
   @override
@@ -415,8 +414,9 @@ class RectanglePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
 
-    for (var rect in topaint) {
-      canvas.drawRect(rect, paint);
+    for (var box in boxes) {
+      canvas.drawRect(
+          Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
     }
   }
 
