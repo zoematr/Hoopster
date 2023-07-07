@@ -64,8 +64,8 @@ class _CameraAppState extends State<CameraApp> {
       if (!mounted) {
         return;
       }
-      controller.startImageStream((image) {
-        _cameraFrameProcessing(image, address);
+      controller.startImageStream((image) async {
+        await _cameraFrameProcessing(image, address);
       });
 
       setState(() {});
@@ -81,7 +81,7 @@ class _CameraAppState extends State<CameraApp> {
     });
   }
 
-  void _cameraFrameProcessing(CameraImage image, address) async {
+  Future<void> _cameraFrameProcessing(CameraImage image, address) async {
     _cameraImage = image;
     counterImage++;
 
