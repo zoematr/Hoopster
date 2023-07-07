@@ -38,10 +38,9 @@ int counterImage = 0;
 late double scalex;
 late double scaley;
 
-late tfl.Interpreter interpreter;
-
 class CameraApp extends StatefulWidget {
-  const CameraApp({Key? key}) : super(key: key);
+  final tfl.Interpreter interpreter;
+  const CameraApp({Key? key, required this.interpreter}) : super(key: key);
   @override
   State<CameraApp> createState() => _CameraAppState();
 }
@@ -49,6 +48,7 @@ class CameraApp extends StatefulWidget {
 class _CameraAppState extends State<CameraApp> {
   late CameraController controller;
   late Future<void> _initializeControllerFuture;
+
   String _videoPath = '';
   @override
   void initState() {
@@ -60,13 +60,12 @@ class _CameraAppState extends State<CameraApp> {
     );
 
     _initializeControllerFuture = controller.initialize().then((_) async {
-      byteData = await rootBundle.load('assets/model.tflite');
-      var data = byteData.buffer.asUint8List();
+      var address = widget.interpreter.address;
       if (!mounted) {
         return;
       }
       controller.startImageStream((image) {
-        _cameraFrameProcessing(image, data);
+        _cameraFrameProcessing(image, address);
       });
 
       setState(() {});
@@ -82,7 +81,7 @@ class _CameraAppState extends State<CameraApp> {
     });
   }
 
-  void _cameraFrameProcessing(CameraImage image, Uint8List data) async {
+  void _cameraFrameProcessing(CameraImage image, address) async {
     _cameraImage = image;
     counterImage++;
 
@@ -90,7 +89,7 @@ class _CameraAppState extends State<CameraApp> {
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
       imago = img.copyResizeCropSquare(imago, size: 416);
       Uint8List byteList = Uint8List.fromList(imago.getBytes());
-      boxes = await compute(processCameraFrame, [byteList, data]);
+      boxes = await compute(processCameraFrame, [byteList, address]);
     }
   }
 
@@ -104,7 +103,7 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void dispose() {
     controller.dispose();
-    interpreter.close();
+    widget.interpreter.close();
     super.dispose();
   }
 
@@ -257,7 +256,7 @@ class ImageUtils {
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
   Uint8List byteList = l[0];
-  tfl.Interpreter interpreter = tfl.Interpreter.fromBuffer(l[1]);
+  tfl.Interpreter interpreter = tfl.Interpreter.fromAddress(l[1]);
 
   try {
     Float32List floatList = Float32List(416 * 416 * 3);
