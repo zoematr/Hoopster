@@ -43,7 +43,7 @@ Widget globalUpdate() {
   );
 }
 
-String basketButton = "AssetsFolder\\BasketButton.png";
+String basketButton = "assets/BasketButton.png";
 Widget lView = globalUpdate();
 
 class HomeScreen extends StatefulWidget {

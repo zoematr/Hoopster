@@ -66,9 +66,13 @@ class _CameraAppState extends State<CameraApp> {
       }
       controller.startImageStream((image) async {
         await _cameraFrameProcessing(image, address);
+        counter++;
+        if (counter % 100 == 0) {
+          _cameraImage = image;
+          setState(() {});
+          counterImage++;
+        }
       });
-
-      setState(() {});
     }).catchError((Object e) {
       if (e is CameraException) {
         switch (e.code) {
@@ -82,11 +86,7 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
-    _cameraImage = image;
-    setState(() {});
-    counterImage++;
-
-    if (counterImage % 10 == 0 && !isprocessing) {
+    if (!isprocessing) {
       isprocessing = true;
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
       imago = img.copyResizeCropSquare(imago, size: 416);
@@ -285,6 +285,7 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
 
     var outputResult = outputBuffer.getDoubleList();
     var boxes = decodeTensor(outputResult, 0.45);
+    RectanglePainter.torepaint = true;
     return boxes;
   } catch (e) {
     return [];
@@ -319,6 +320,7 @@ img.Image fromFltoIM(Float32List F32l) {
 }
 
 class RectanglePainter extends CustomPainter {
+  static bool torepaint = false;
   List<BoundingBox> topaint;
   RectanglePainter(this.topaint);
 
@@ -333,10 +335,11 @@ class RectanglePainter extends CustomPainter {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
     }
+    torepaint = true;
   }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
-    return false; // No need to repaint since the rectangle is static
+    return torepaint; // No need to repaint since the rectangle is static
   }
 }
