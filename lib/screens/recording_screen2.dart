@@ -22,6 +22,7 @@ import 'output_processing.dart';
 
 int i = 0;
 late CameraImage _cameraImage;
+List<Rect> boxes = [];
 int counter = 0;
 String lastSaved = "";
 int Hit = 0;
@@ -50,7 +51,7 @@ class _CameraAppState extends State<CameraApp> {
     super.initState();
     controller = CameraController(
       cameras.last,
-      ResolutionPreset.low,
+      ResolutionPreset.medium,
     );
 
     loadModel().then((interpreter) {
@@ -158,7 +159,7 @@ class _CameraAppState extends State<CameraApp> {
     }
     return Scaffold(
         body: CustomPaint(
-      painter: RectanglePainter(),
+      painter: RectanglePainter(boxes),
       child: Container(
         child: Column(
           children: [
@@ -404,16 +405,19 @@ img.Image fromFltoIM(Float32List F32l) {
 }
 
 class RectanglePainter extends CustomPainter {
+  late List<Rect> topaint;
+  RectanglePainter(this.topaint);
+
   @override
   void paint(Canvas canvas, size) {
-    const rect =
-        Rect.fromLTWH(50, 50, 100, 100); // Define the rectangle dimensions
+    var paint = Paint()
+      ..color = Colors.green
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
 
-    final paint = Paint()
-      ..color = Colors.blue // Set the color of the rectangle
-      ..style = PaintingStyle.fill; // Set the painting style as fill
-
-    canvas.drawRect(rect, paint); // Draw the rectangle on the canvas
+    for (var rect in topaint) {
+      canvas.drawRect(rect, paint);
+    }
   }
 
   @override
