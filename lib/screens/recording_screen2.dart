@@ -256,7 +256,15 @@ class ImageUtils {
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
   Uint8List byteList = l[0];
-  tfl.Interpreter interpreter = tfl.Interpreter.fromAddress(l[1]);
+  late tfl.Interpreter interpreter;
+
+  try {
+    interpreter = tfl.Interpreter.fromAddress(l[1]
+        //options: tfl.InterpreterOptions()..threads = 4,
+        );
+  } catch (e) {
+    print('Error loading model: $e');
+  }
 
   try {
     Float32List floatList = Float32List(416 * 416 * 3);
