@@ -277,7 +277,7 @@ class ImageUtils {
   }
 }
 
-Future<void> processCameraFrame(List<dynamic> l) async {
+void processCameraFrame(List<dynamic> l) {
   CameraImage image = l[0];
   tfl.Interpreter interpreter = tfl.Interpreter.fromAddress(l[1]);
 
@@ -298,12 +298,9 @@ Future<void> processCameraFrame(List<dynamic> l) async {
     var outputBuffer = TensorBuffer.createFixedSize(outputShape, outputType);
 
     interpreter.run(imgReshaped, outputBuffer.getBuffer());
-    print('ran interpreter');
 
     var outputResult = outputBuffer.getDoubleList();
-    boxes = decodeTensor(outputResult, 0.2);
-
-    //processInferenceResults(outputResult);
+    boxes = decodeTensor(outputResult, 0.45);
   } catch (e) {}
 }
 
@@ -343,8 +340,6 @@ Float32List convertCameraImage(CameraImage image) {
 
     return modelInput;
   } catch (e) {
-    print('its the convert function;');
-    print(e);
     return Float32List(3);
   }
 }
