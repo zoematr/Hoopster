@@ -77,6 +77,6 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
       }
     }
   }
-
+  print(boxes.length);
   return boxes;
 }

@@ -59,12 +59,14 @@ class _CameraAppState extends State<CameraApp> {
       ResolutionPreset.medium,
     );
 
-    _initializeControllerFuture = controller.initialize().then((_) {
+    _initializeControllerFuture = controller.initialize().then((_) async {
+      byteData = await rootBundle.load('assets/model.tflite');
+      var data = byteData.buffer.asUint8List();
       if (!mounted) {
         return;
       }
       controller.startImageStream((image) {
-        _cameraFrameProcessing(image);
+        _cameraFrameProcessing(image, data);
       });
 
       setState(() {});
@@ -80,13 +82,11 @@ class _CameraAppState extends State<CameraApp> {
     });
   }
 
-  void _cameraFrameProcessing(CameraImage image) async {
+  void _cameraFrameProcessing(CameraImage image, Uint8List data) async {
     _cameraImage = image;
     counterImage++;
 
     if (counterImage % 10 == 0) {
-      byteData = await rootBundle.load('assets/model.tflite');
-      var data = byteData.buffer.asUint8List();
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
       imago = img.copyResizeCropSquare(imago, size: 416);
       Uint8List byteList = Uint8List.fromList(imago.getBytes());
@@ -275,10 +275,8 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
 
     var outputResult = outputBuffer.getDoubleList();
     var boxes = decodeTensor(outputResult, 0.45);
-    interpreter.close();
     return boxes;
   } catch (e) {
-    interpreter.close();
     return [];
   }
 }
