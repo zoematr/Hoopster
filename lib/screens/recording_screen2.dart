@@ -157,7 +157,9 @@ class _CameraAppState extends State<CameraApp> {
       );
     }
     return Scaffold(
-      body: Container(
+        body: CustomPaint(
+      painter: RectanglePainter(),
+      child: Container(
         child: Column(
           children: [
             SizedBox(child: CameraPreview(controller)),
@@ -227,7 +229,7 @@ class _CameraAppState extends State<CameraApp> {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -404,7 +406,7 @@ img.Image fromFltoIM(Float32List F32l) {
 class RectanglePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, size) {
-    final rect =
+    const rect =
         Rect.fromLTWH(50, 50, 100, 100); // Define the rectangle dimensions
 
     final paint = Paint()
