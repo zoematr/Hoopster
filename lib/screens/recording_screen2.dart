@@ -88,9 +88,10 @@ class _CameraAppState extends State<CameraApp> {
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
     if (!isprocessing) {
       isprocessing = true;
-      img.Image imago = ImageUtils.convertYUV420ToImage(image);
+      img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       imago = img.copyResizeCropSquare(imago, size: 416);
       Uint8List byteList = Uint8List.fromList(imago.getBytes());
+      imago = null;
       boxes = await compute(processCameraFrame, [byteList, address]);
       isprocessing = false;
     }
@@ -275,16 +276,22 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
       floatList[i] = byteList[i] / 255.0;
     }
 
-    final imgReshaped = floatList.reshape([1, 416, 416, 3]);
+    List<dynamic>? imgReshaped = floatList.reshape([1, 416, 416, 3]);
 
-    var outputShape = interpreter.getOutputTensor(0).shape;
-    var outputType = interpreter.getOutputTensor(0).type;
-    var outputBuffer = TensorBuffer.createFixedSize(outputShape, outputType);
+    List<int>? outputShape = interpreter.getOutputTensor(0).shape;
+    TfLiteType? outputType = interpreter.getOutputTensor(0).type;
+    TensorBuffer? outputBuffer =
+        TensorBuffer.createFixedSize(outputShape, outputType);
 
     interpreter.run(imgReshaped, outputBuffer.getBuffer());
+    List<double>? outputResult = outputBuffer.getDoubleList();
+    outputType = null;
+    outputShape = null;
+    imgReshaped = null;
+    outputBuffer = null;
 
-    var outputResult = outputBuffer.getDoubleList();
     var boxes = decodeTensor(outputResult, 0.45);
+    outputResult = null;
     RectanglePainter.torepaint = true;
     return boxes;
   } catch (e) {
