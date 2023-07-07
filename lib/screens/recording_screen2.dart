@@ -82,7 +82,7 @@ class _CameraAppState extends State<CameraApp> {
     counterImage++;
 
     if (counterImage % 10 == 0) {
-      var f = await compute(
+      boxes = await compute(
           processCameraFrame, [_cameraImage, interpreter.address]);
     }
   }
@@ -90,7 +90,7 @@ class _CameraAppState extends State<CameraApp> {
   Future<tfl.Interpreter> loadModel() async {
     return tfl.Interpreter.fromAsset(
       'model.tflite',
-      options: tfl.InterpreterOptions()..threads = 4,
+      //options: tfl.InterpreterOptions()..threads = 4,
     );
   }
 
@@ -120,36 +120,6 @@ class _CameraAppState extends State<CameraApp> {
     }
   }
 
-  Future<void> stopVideoRecording() async {
-    if (!controller.value.isInitialized) {
-      return;
-    }
-    if (!controller.value.isRecordingVideo) {
-      return;
-    }
-    try {
-      await controller.stopVideoRecording();
-    } on CameraException catch (e) {
-      print('Error: ${e.code}\n${e.description}');
-      return;
-    }
-  }
-
-  void capture() async {
-    int _1 = Random().nextInt(20);
-    int _2 = Random().nextInt(20);
-    DateTime n = DateTime.now();
-    setState(() {});
-    if (_cameraImage != null) {
-      Uint8List colored = Uint8List(_cameraImage.planes[0].bytes.length * 3);
-      int b = 0;
-      img.Image image = _cameraImage as img.Image;
-      var input = [1, 13, 13, 3];
-
-      img.Image Rimage = img.copyRotate(image, angle: 90);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!controller.value.isInitialized) {
@@ -158,9 +128,8 @@ class _CameraAppState extends State<CameraApp> {
       );
     }
     return Scaffold(
-        body: CustomPaint(
-      painter: RectanglePainter(boxes),
-      child: Container(
+        body: Stack(children: [
+      Container(
         child: Column(
           children: [
             SizedBox(child: CameraPreview(controller)),
@@ -230,7 +199,8 @@ class _CameraAppState extends State<CameraApp> {
           ],
         ),
       ),
-    ));
+      CustomPaint(painter: RectanglePainter(boxes)),
+    ]));
   }
 }
 
@@ -277,7 +247,7 @@ class ImageUtils {
   }
 }
 
-void processCameraFrame(List<dynamic> l) {
+Future<List<BoundingBox>> processCameraFrame(List<dynamic> l) async {
   CameraImage image = l[0];
   tfl.Interpreter interpreter = tfl.Interpreter.fromAddress(l[1]);
 
@@ -300,47 +270,12 @@ void processCameraFrame(List<dynamic> l) {
     interpreter.run(imgReshaped, outputBuffer.getBuffer());
 
     var outputResult = outputBuffer.getDoubleList();
-    boxes = decodeTensor(outputResult, 0.45);
-  } catch (e) {}
-}
-
-Float32List convertCameraImage(CameraImage image) {
-  try {
-    var width = image.width;
-    var height = image.height;
-    final int uvRowStride = image.planes[1].bytesPerRow;
-    final int? uvPixelStride = image.planes[1].bytesPerPixel;
-
-    img.Image imago = img.Image(height: height, width: width);
-    for (int x = 0; x < width; x++) {
-      for (int y = 0; y < height; y++) {
-        final int uvIndex =
-            uvPixelStride! * (x / 2).floor() + uvRowStride * (y / 2).floor();
-        final int index = y * width + x;
-        final int yValue = image.planes[0].bytes[index];
-        final int uValue = image.planes[1].bytes[uvIndex];
-        final int vValue = image.planes[2].bytes[uvIndex];
-        List rgbColor = [1, 2, 4];
-        imago.setPixelRgba(x, y, rgbColor[0], rgbColor[1], rgbColor[2], 1);
-      }
-    }
-    img.Image resizedImage = img.copyResize(imago, width: 416, height: 416);
-    Float32List modelInput = Float32List(1 * 416 * 416 * 3);
-
-    int pixelIndex = 0;
-    for (int i = 0; i < 416; i++) {
-      for (int j = 0; j < 416; j++) {
-        var pixel = resizedImage.getPixelSafe(i, j);
-        modelInput[pixelIndex] = pixel.r / 255.0;
-        modelInput[pixelIndex + 1] = pixel.g / 255.0;
-        modelInput[pixelIndex + 2] = pixel.b / 255.0;
-        pixelIndex += 3;
-      }
-    }
-
-    return modelInput;
+    var boxes = decodeTensor(outputResult, 0.45);
+    interpreter.close();
+    return boxes;
   } catch (e) {
-    return Float32List(3);
+    interpreter.close();
+    return [];
   }
 }
 
@@ -362,33 +297,6 @@ void processInferenceResults(List<dynamic> output) {
   if (labels.isEmpty) {
     return;
   }
-}
-
-img.Image resizeImageTo32(img.Image originalImage) {
-  print(
-      'Original image dimensions: ${originalImage.width} x ${originalImage.height}');
-
-  bool isWidthSmaller = originalImage.width < originalImage.height;
-  int newWidth;
-  int newHeight;
-
-  if (isWidthSmaller) {
-    newWidth = 32;
-    newHeight = (originalImage.height / originalImage.width * newWidth).round();
-  } else {
-    newHeight = 32;
-    newWidth = (originalImage.width / originalImage.height * newHeight).round();
-  }
-
-  print('Expected image dimensions: $newWidth x $newHeight');
-
-  img.Image resizedImage =
-      img.copyResize(originalImage, width: newWidth, height: newHeight);
-
-  print(
-      'Resized image dimensions: ${resizedImage.width} x ${resizedImage.height}');
-
-  return resizedImage;
 }
 
 img.Image fromFltoIM(Float32List F32l) {
