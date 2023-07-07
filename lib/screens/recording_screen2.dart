@@ -29,7 +29,9 @@ int Miss = 0;
 var height;
 var width;
 const int INPUT_SIZE = 416;
-int counterImage=0;
+int counterImage = 0;
+late double scalex;
+late double scaley;
 
 late tfl.Interpreter interpreter;
 
@@ -73,12 +75,14 @@ class _CameraAppState extends State<CameraApp> {
     });
   }
 
-  void _cameraFrameProcessing (CameraImage image, tfl.Interpreter interpreter) async {
+  void _cameraFrameProcessing(
+      CameraImage image, tfl.Interpreter interpreter) async {
     _cameraImage = image;
     counterImage++;
 
-    if (counterImage % 10==0) {
-      var f = await compute(processCameraFrame, [_cameraImage, interpreter.address]);
+    if (counterImage % 10 == 0) {
+      var f = await compute(
+          processCameraFrame, [_cameraImage, interpreter.address]);
     }
   }
 
@@ -364,7 +368,8 @@ void processInferenceResults(List<dynamic> output) {
 }
 
 img.Image resizeImageTo32(img.Image originalImage) {
-  print('Original image dimensions: ${originalImage.width} x ${originalImage.height}');
+  print(
+      'Original image dimensions: ${originalImage.width} x ${originalImage.height}');
 
   bool isWidthSmaller = originalImage.width < originalImage.height;
   int newWidth;
@@ -394,4 +399,23 @@ img.Image fromFltoIM(Float32List F32l) {
       img.Image.fromBytes(width: 416, height: 416, bytes: F32l.buffer);
 
   return im;
+}
+
+class RectanglePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, size) {
+    final rect =
+        Rect.fromLTWH(50, 50, 100, 100); // Define the rectangle dimensions
+
+    final paint = Paint()
+      ..color = Colors.blue // Set the color of the rectangle
+      ..style = PaintingStyle.fill; // Set the painting style as fill
+
+    canvas.drawRect(rect, paint); // Draw the rectangle on the canvas
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return false; // No need to repaint since the rectangle is static
+  }
 }
