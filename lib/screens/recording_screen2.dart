@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/screens/recording_screen2.dart';
@@ -22,10 +23,12 @@ import 'output_processing.dart';
 
 int i = 0;
 late CameraImage _cameraImage;
+
 List<BoundingBox> boxes = [];
 int counter = 0;
 String lastSaved = "";
 String asset = 'model.tflite';
+late ByteData byteData;
 int Hit = 0;
 int Miss = 0;
 var height;
@@ -82,10 +85,12 @@ class _CameraAppState extends State<CameraApp> {
     counterImage++;
 
     if (counterImage % 10 == 0) {
+      byteData = await rootBundle.load('assets/model.tflite');
+      var data = byteData.buffer.asUint8List();
       img.Image imago = ImageUtils.convertYUV420ToImage(image);
       imago = img.copyResizeCropSquare(imago, size: 416);
       Uint8List byteList = Uint8List.fromList(imago.getBytes());
-      boxes = await compute(processCameraFrame, [byteList, asset]);
+      boxes = await compute(processCameraFrame, [byteList, data]);
     }
   }
 
@@ -250,9 +255,9 @@ class ImageUtils {
   }
 }
 
-Future<List<BoundingBox>> processCameraFrame(List<dynamic> l) async {
+List<BoundingBox> processCameraFrame(List<dynamic> l) {
   Uint8List byteList = l[0];
-  tfl.Interpreter interpreter = await tfl.Interpreter.fromAsset(l[1]);
+  tfl.Interpreter interpreter = tfl.Interpreter.fromBuffer(l[1]);
 
   try {
     Float32List floatList = Float32List(416 * 416 * 3);
