@@ -25,6 +25,7 @@ late CameraImage _cameraImage;
 List<BoundingBox> boxes = [];
 int counter = 0;
 String lastSaved = "";
+String asset = 'model.tflite';
 int Hit = 0;
 int Miss = 0;
 var height;
@@ -49,41 +50,42 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void initState() {
     super.initState();
+
     controller = CameraController(
       cameras.last,
       ResolutionPreset.medium,
     );
 
-    loadModel().then((interpreter) {
-      _initializeControllerFuture = controller.initialize().then((_) {
-        controller.startImageStream((image) {
-          _cameraFrameProcessing(image, interpreter);
-        });
-        if (!mounted) {
-          return;
-        }
-        setState(() {});
-      }).catchError((Object e) {
-        if (e is CameraException) {
-          switch (e.code) {
-            case 'CameraAccessDenied':
-              break;
-            default:
-              break;
-          }
-        }
+    _initializeControllerFuture = controller.initialize().then((_) {
+      if (!mounted) {
+        return;
+      }
+      controller.startImageStream((image) {
+        _cameraFrameProcessing(image);
       });
+
+      setState(() {});
+    }).catchError((Object e) {
+      if (e is CameraException) {
+        switch (e.code) {
+          case 'CameraAccessDenied':
+            break;
+          default:
+            break;
+        }
+      }
     });
   }
 
-  void _cameraFrameProcessing(
-      CameraImage image, tfl.Interpreter interpreter) async {
+  void _cameraFrameProcessing(CameraImage image) async {
     _cameraImage = image;
     counterImage++;
 
     if (counterImage % 10 == 0) {
-      boxes = await compute(
-          processCameraFrame, [_cameraImage, interpreter.address]);
+      img.Image imago = ImageUtils.convertYUV420ToImage(image);
+      imago = img.copyResizeCropSquare(imago, size: 416);
+      Uint8List byteList = Uint8List.fromList(imago.getBytes());
+      boxes = await compute(processCameraFrame, [byteList, asset]);
     }
   }
 
@@ -97,6 +99,7 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void dispose() {
     controller.dispose();
+    interpreter.close();
     super.dispose();
   }
 
@@ -248,14 +251,10 @@ class ImageUtils {
 }
 
 Future<List<BoundingBox>> processCameraFrame(List<dynamic> l) async {
-  CameraImage image = l[0];
-  tfl.Interpreter interpreter = tfl.Interpreter.fromAddress(l[1]);
+  Uint8List byteList = l[0];
+  tfl.Interpreter interpreter = await tfl.Interpreter.fromAsset(l[1]);
 
   try {
-    img.Image imago = ImageUtils.convertYUV420ToImage(image);
-    imago = img.copyResizeCropSquare(imago, size: 416);
-    Uint8List byteList = Uint8List.fromList(imago.getBytes());
-
     Float32List floatList = Float32List(416 * 416 * 3);
     for (var i = 0; i < byteList.length; i++) {
       floatList[i] = byteList[i] / 255.0;
