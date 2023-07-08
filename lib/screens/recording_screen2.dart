@@ -23,6 +23,7 @@ import 'output_processing.dart';
 
 late int padSize;
 int i = 0;
+
 late CameraImage _cameraImage;
 bool isprocessing = false;
 List<BoundingBox> boxes = [];
@@ -51,6 +52,7 @@ class _CameraAppState extends State<CameraApp> {
   late Future<void> _initializeControllerFuture;
 
   String _videoPath = '';
+
   @override
   void initState() {
     super.initState();
@@ -92,41 +94,43 @@ class _CameraAppState extends State<CameraApp> {
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
       boxes = await compute(processCameraFrame, [imagine, address]);
-      isprocessing = false;
-    }
-  }
-
-  Future<tfl.Interpreter> loadModel() async {
-    return tfl.Interpreter.fromAsset(
-      'model.tflite',
-      //options: tfl.InterpreterOptions()..threads = 4,
-    );
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    widget.interpreter.close();
-    super.dispose();
-  }
-
-  Future<void> _onRecordButtonPressed() async {
-    try {
-      if (controller.value.isRecordingVideo) {
-        final path = await controller.stopVideoRecording();
-        setState(() {
-          _videoPath = path as String;
-        });
-      } else {
-        await _initializeControllerFuture;
-        final now = DateTime.now();
-        final formattedDate =
-            '${now.year}-${now.month}-${now.day} ${now.hour}-${now.minute}-${now.second}';
-        final fileName = 'hoopster_${formattedDate}.mp4';
-        final path = '${Directory.systemTemp.path}/$fileName';
+      for (var element in boxes) {
+        isprocessing = false;
       }
-    } catch (e) {
-      print(e);
+    }
+
+    Future<tfl.Interpreter> loadModel() async {
+      return tfl.Interpreter.fromAsset(
+        'model.tflite',
+        //options: tfl.InterpreterOptions()..threads = 4,
+      );
+    }
+
+    @override
+    void dispose() {
+      controller.dispose();
+      widget.interpreter.close();
+      super.dispose();
+    }
+
+    Future<void> _onRecordButtonPressed() async {
+      try {
+        if (controller.value.isRecordingVideo) {
+          final path = await controller.stopVideoRecording();
+          setState(() {
+            _videoPath = path as String;
+          });
+        } else {
+          await _initializeControllerFuture;
+          final now = DateTime.now();
+          final formattedDate =
+              '${now.year}-${now.month}-${now.day} ${now.hour}-${now.minute}-${now.second}';
+          final fileName = 'hoopster_${formattedDate}.mp4';
+          final path = '${Directory.systemTemp.path}/$fileName';
+        }
+      } catch (e) {
+        print(e);
+      }
     }
   }
 
@@ -259,7 +263,6 @@ class ImageUtils {
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
   TensorImage inputImage = l[0];
-  inputImage.printInfo();
   late tfl.Interpreter interpreter;
 
   try {
@@ -290,10 +293,32 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
       2: outputScores.buffer,
       3: numLocations.buffer,
     };
-
+    List<BoundingBox> boxes = [];
     interpreter.runForMultipleInputs([inputImage.buffer], outputs);
-    print(outputScores.buffer.asFloat32List());
-    return [];
+    ByteBuffer locationBuffer = outputs[0] as ByteBuffer;
+    ByteBuffer classBuffer = outputs[1] as ByteBuffer;
+    ByteBuffer scoreBuffer = outputs[2] as ByteBuffer;
+    int resultsCount = min(10, numLocations.getIntValue(0));
+    Float32List locations = locationBuffer.asFloat32List();
+    Float32List classes = classBuffer.asFloat32List();
+    Float32List scores = scoreBuffer.asFloat32List();
+    for (int i = 0; i < resultsCount; i++) {
+      if (scores[i] > 0.1) {
+        int baseIdx = i * 4;
+        boxes.add(
+          BoundingBox(
+            x: locations[baseIdx] * w,
+            y: locations[baseIdx + 1] * h,
+            width: locations[baseIdx + 2] * w,
+            height: locations[baseIdx + 3] * h,
+            confidence: scores[i],
+            classId: classes[i].toInt(),
+          ),
+        );
+      }
+    }
+
+    return boxes;
   } catch (e) {
     print(e.toString());
     return [];
@@ -328,9 +353,8 @@ img.Image fromFltoIM(Float32List F32l) {
 }
 
 class RectanglePainter extends CustomPainter {
-  static bool torepaint = false;
-  List<BoundingBox> topaint;
-  RectanglePainter(this.topaint);
+  List<BoundingBox> boxes;
+  RectanglePainter(this.boxes);
 
   @override
   void paint(Canvas canvas, size) {
@@ -343,12 +367,13 @@ class RectanglePainter extends CustomPainter {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
     }
-    torepaint = true;
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return torepaint; // No need to repaint since the rectangle is static
+  bool shouldRepaint(RectanglePainter oldDelegate) {
+    //return torepaint;
+    // Repaint if the old boxes are not the same as the new ones
+    return oldDelegate.boxes != this.boxes;
   }
 }
 
@@ -360,6 +385,5 @@ TensorImage processor(TensorImage inputImage) {
       .build();
 
   inputImage = imageProcessor.process(inputImage);
-  print(inputImage.buffer);
   return inputImage;
 }
