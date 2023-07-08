@@ -21,6 +21,7 @@ import '../main.dart';
 import 'home_screen.dart';
 import 'output_processing.dart';
 
+late int padSize;
 int i = 0;
 late CameraImage _cameraImage;
 bool isprocessing = false;
@@ -33,7 +34,7 @@ int Hit = 0;
 int Miss = 0;
 var height;
 var width;
-const int INPUT_SIZE = 416;
+const int INPUT_SIZE = 300;
 int counterImage = 0;
 late double scalex;
 late double scaley;
@@ -89,7 +90,7 @@ class _CameraAppState extends State<CameraApp> {
     if (!isprocessing) {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
-      imago = img.copyResizeCropSquare(imago, size: 416);
+      TensorImage imagine = processor(TensorImage.fromImage(imago));
       Uint8List byteList = Uint8List.fromList(imago.getBytes());
       imago = null;
       boxes = await compute(processCameraFrame, [byteList, address]);
@@ -259,7 +260,7 @@ class ImageUtils {
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
-  Uint8List byteList = l[0];
+  TensorImage inputImage = l[0];
   late tfl.Interpreter interpreter;
 
   try {
@@ -271,28 +272,24 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
   }
 
   try {
-    Float32List floatList = Float32List(416 * 416 * 3);
-    for (var i = 0; i < byteList.length; i++) {
-      floatList[i] = byteList[i] / 255.0;
-    }
-
-    List<dynamic>? imgReshaped = floatList.reshape([1, 416, 416, 3]);
-
-    List<int>? outputShape = interpreter.getOutputTensor(0).shape;
-    TfLiteType? outputType = interpreter.getOutputTensor(0).type;
-    TensorBuffer? outputBuffer =
-        TensorBuffer.createFixedSize(outputShape, outputType);
-
-    interpreter.run(imgReshaped, outputBuffer.getBuffer());
-    List<double>? outputResult = outputBuffer.getDoubleList();
-    outputType = null;
-    outputShape = null;
-    imgReshaped = null;
-    outputBuffer = null;
-
-    var boxes = decodeTensor(outputResult, 0.45);
-    outputResult = null;
-    RectanglePainter.torepaint = true;
+    var outputTensors = interpreter.getOutputTensors();
+    var _outputShapes = [];
+    var _outputTypes = [];
+    outputTensors.forEach((tensor) {
+      _outputShapes.add(tensor.shape);
+      _outputTypes.add(tensor.type);
+    });
+    TensorBuffer outputLocations = TensorBufferFloat(_outputShapes[0]);
+    TensorBuffer outputClasses = TensorBufferFloat(_outputShapes[1]);
+    TensorBuffer outputScores = TensorBufferFloat(_outputShapes[2]);
+    TensorBuffer numLocations = TensorBufferFloat(_outputShapes[3]);
+    Map<int, Object> outputs = {
+      0: outputLocations.buffer,
+      1: outputClasses.buffer,
+      2: outputScores.buffer,
+      3: numLocations.buffer,
+    };
+    print(outputScores);
     return boxes;
   } catch (e) {
     return [];
@@ -349,4 +346,15 @@ class RectanglePainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) {
     return torepaint; // No need to repaint since the rectangle is static
   }
+}
+
+TensorImage processor(TensorImage inputImage) {
+  padSize = max(inputImage.height, inputImage.width);
+  ImageProcessor imageProcessor = ImageProcessorBuilder()
+      .add(ResizeWithCropOrPadOp(padSize, padSize))
+      .add(ResizeOp(INPUT_SIZE, INPUT_SIZE, ResizeMethod.BILINEAR))
+      .build();
+
+  inputImage = imageProcessor.process(inputImage);
+  return inputImage;
 }
