@@ -91,9 +91,7 @@ class _CameraAppState extends State<CameraApp> {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
-      Uint8List byteList = Uint8List.fromList(imago.getBytes());
-      imago = null;
-      boxes = await compute(processCameraFrame, [byteList, address]);
+      boxes = await compute(processCameraFrame, [imagine, address]);
       isprocessing = false;
     }
   }
@@ -261,6 +259,7 @@ class ImageUtils {
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
   TensorImage inputImage = l[0];
+  inputImage.printInfo();
   late tfl.Interpreter interpreter;
 
   try {
@@ -273,12 +272,14 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
 
   try {
     var outputTensors = interpreter.getOutputTensors();
+
     var _outputShapes = [];
     var _outputTypes = [];
     outputTensors.forEach((tensor) {
       _outputShapes.add(tensor.shape);
       _outputTypes.add(tensor.type);
     });
+
     TensorBuffer outputLocations = TensorBufferFloat(_outputShapes[0]);
     TensorBuffer outputClasses = TensorBufferFloat(_outputShapes[1]);
     TensorBuffer outputScores = TensorBufferFloat(_outputShapes[2]);
@@ -289,9 +290,12 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
       2: outputScores.buffer,
       3: numLocations.buffer,
     };
-    print(outputScores);
-    return boxes;
+
+    interpreter.runForMultipleInputs([inputImage.buffer], outputs);
+    print(outputScores.buffer.asFloat32List());
+    return [];
   } catch (e) {
+    print(e.toString());
     return [];
   }
 }
@@ -356,5 +360,6 @@ TensorImage processor(TensorImage inputImage) {
       .build();
 
   inputImage = imageProcessor.process(inputImage);
+  print(inputImage.buffer);
   return inputImage;
 }
