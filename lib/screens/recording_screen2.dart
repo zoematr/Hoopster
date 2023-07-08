@@ -39,6 +39,9 @@ const int INPUT_SIZE = 300;
 int counterImage = 0;
 late double scalex;
 late double scaley;
+List<List<double>> coorFinger = [];
+bool StopModel = true;
+int tap = 0;
 
 class CameraApp extends StatefulWidget {
   final tfl.Interpreter interpreter;
@@ -68,7 +71,11 @@ class _CameraAppState extends State<CameraApp> {
         return;
       }
       controller.startImageStream((image) async {
-        await _cameraFrameProcessing(image, address);
+        if (!StopModel) {
+          await _cameraFrameProcessing(image, address);
+          //print("started");
+        }
+        print(StopModel);
         counter++;
         if (counter % 100 == 0) {
           _cameraImage = image;
@@ -89,6 +96,7 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
+    print("The quick brown fox jumped over the lazy dog");
     if (!isprocessing) {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
@@ -146,7 +154,19 @@ class _CameraAppState extends State<CameraApp> {
       Container(
         child: Column(
           children: [
-            SizedBox(child: CameraPreview(controller)),
+            GestureDetector(
+              child: SizedBox(child: CameraPreview(controller)),
+              onTapDown: (TapDownDetails details) {
+                var tapPosition = details.globalPosition;
+                double x = tapPosition.dx;
+                double y = tapPosition.dy;
+                if (coorFinger.length > 4) {
+                  coorFinger = [];
+                }
+                coorFinger.add([x, y]);
+                print(coorFinger);
+              },
+            ),
             Expanded(
               child: Container(
                 color: Color.fromARGB(255, 93, 70, 94),
@@ -189,6 +209,16 @@ class _CameraAppState extends State<CameraApp> {
                         onTap: () => {
                           //capture(),
                           setState(() {
+                            
+                            if (tap % 2 == 0) {
+                              tap++;
+                              StopModel = false;
+                            } else {
+                              tap++;
+                              StopModel == true;
+                            }
+                            
+
                             Miss++;
                             Hit++;
                           })
@@ -387,3 +417,79 @@ TensorImage processor(TensorImage inputImage) {
   inputImage = imageProcessor.process(inputImage);
   return inputImage;
 }
+
+/*void NormalizeBasketCoor(List<List<double>> coor) {
+  List<List<double>> ret = [];
+
+  ret.add(coor[0]);
+
+  ret.add([coor[1][0] - getDistance(coor[0][0], coor[1][0]), coor[0][1]]);
+}
+
+double getDistance(double a, double b) {
+  double d = 0;
+  d = max(a, b) - min(a, b);
+  return d;
+}*/
+
+List<List<double>> normalizeToRectangle(List<List<double>> coor) {
+  Point p1 = Point(coor[0][0], coor[0][1]);
+  Point p2 = Point(coor[1][0], coor[1][1]);
+  Point p3 = Point(coor[2][0], coor[2][1]);
+  Point p4 = Point(coor[3][0], coor[3][1]);
+  // Calculate the distances between the points
+  final d12 = _distanceBetweenPoints(p1, p2);
+  final d13 = _distanceBetweenPoints(p1, p3);
+  final d14 = _distanceBetweenPoints(p1, p4);
+
+  // Find the shortest and longest distances
+  final minDistance = min(min(d12, d13), d14);
+  final maxDistance = max(max(d12, d13), d14);
+
+  // Determine the diagonal points based on the shortest and longest distances
+  Point diagonal1, diagonal2;
+  if (minDistance == d12) {
+    diagonal1 = p2;
+    diagonal2 = d13 < d14 ? p3 : p4;
+  } else if (minDistance == d13) {
+    diagonal1 = p3;
+    diagonal2 = d12 < d14 ? p2 : p4;
+  } else {
+    diagonal1 = p4;
+    diagonal2 = d12 < d13 ? p2 : p3;
+  }
+
+  // Calculate the new points to form a rectangle
+  final normalizedP2 =
+      _calculateNormalizedPoint(p1, diagonal1, diagonal2, maxDistance);
+  final normalizedP3 =
+      _calculateNormalizedPoint(p1, diagonal2, diagonal1, maxDistance);
+  final normalizedP4 =
+      _calculateNormalizedPoint(p1, diagonal1, diagonal2, minDistance);
+
+  return [
+    [p1.x.toDouble(), p1.y.toDouble()],
+    [normalizedP2.x.toDouble(), normalizedP2.y.toDouble()],
+    [normalizedP3.x.toDouble(), normalizedP3.y.toDouble()],
+    [normalizedP4.x.toDouble(), normalizedP4.y.toDouble()]
+  ];
+}
+
+double _distanceBetweenPoints(Point p1, Point p2) {
+  final dx = p2.x - p1.x;
+  final dy = p2.y - p1.y;
+  return sqrt(dx * dx + dy * dy);
+}
+
+Point _calculateNormalizedPoint(
+    Point reference, Point diagonal1, Point diagonal2, double targetDistance) {
+  final dx = diagonal1.x - reference.x;
+  final dy = diagonal1.y - reference.y;
+  final currentDistance = sqrt(dx * dx + dy * dy);
+  final scaleFactor = targetDistance / currentDistance;
+  final normalizedX = reference.x + dx * scaleFactor;
+  final normalizedY = reference.y + dy * scaleFactor;
+  return Point(normalizedX, normalizedY);
+}
+
+void ShotLogicHandler() {}

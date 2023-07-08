@@ -43,7 +43,7 @@ Widget globalUpdate() {
   );
 }
 
-String basketButton = "assets/BasketButton.png";
+String basketButton = "AssetsFolder\\BasketButton.png";
 Widget lView = globalUpdate();
 
 class HomeScreen extends StatefulWidget {
@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Color.fromARGB(255, 0, 0, 0),
       ),
       body: FutureBuilder(
-        future: tfl.Interpreter.fromAsset('detect.tflite'),
+        future: tfl.Interpreter.fromAsset('AssetsFolder\\detect.tflite'),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             // Display a loading indicator while waiting for the async operation to complete
