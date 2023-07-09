@@ -25,12 +25,15 @@ import 'output_processing.dart';
 
 late int padSize;
 int i = 0;
+List<BoundingBox> boxes = [];
+ImageProcessor? imageProcessor = null;
 final _outputShapes = [];
 late CameraImage _cameraImage;
 bool isprocessing = false;
 int counter = 0;
 String lastSaved = "";
 String asset = 'model.tflite';
+bool saveimage = true;
 late ByteData byteData;
 int Hit = 0;
 int Miss = 0;
@@ -41,7 +44,7 @@ int counterImage = 0;
 late double scalex;
 late double scaley;
 List<List<double>> coorFinger = [];
-bool StopModel = true;
+bool StopModel = false;
 int tap = 0;
 List<DateTime> timesRecorded = [];
 late DateTime time;
@@ -60,7 +63,6 @@ class CameraApp extends StatefulWidget {
 }
 
 class _CameraAppState extends State<CameraApp> {
-  List<BoundingBox> boxes = [];
   late CameraController controller;
   late Future<void> _initializeControllerFuture;
   _CameraAppState() {
@@ -89,8 +91,8 @@ class _CameraAppState extends State<CameraApp> {
       }
       controller.startImageStream((image) async {
         if (!StopModel) {
+          print('ok');
           await _cameraFrameProcessing(image, address);
-          //print("started");
         }
         //print(StopModel);
         if (counter % 100 == 0) {
@@ -113,52 +115,59 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
-    //print("The quick brown fox jumped over the lazy dog");
     if (!isprocessing) {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
-      assert(_outputShapes != []);
-      boxes = await compute(processCameraFrame,
-          [imagine, address, widget.w, widget.h, _outputShapes]);
+      try {
+        boxes = await compute(processCameraFrame, [
+          imagine,
+          address,
+          height,
+          width,
+          _outputShapes,
+        ]);
+      } catch (e) {
+        isprocessing = false;
+      }
 
       setState(() {});
-      for (var element in boxes) {}
+
       isprocessing = false;
     }
+  }
 
-    Future<tfl.Interpreter> loadModel() async {
-      return tfl.Interpreter.fromAsset(
-        'model.tflite',
-        //options: tfl.InterpreterOptions()..threads = 4,
-      );
-    }
+  Future<tfl.Interpreter> loadModel() async {
+    return tfl.Interpreter.fromAsset(
+      'model.tflite',
+      //options: tfl.InterpreterOptions()..threads = 4,
+    );
+  }
 
-    @override
-    void dispose() {
-      controller.dispose();
-      widget.interpreter.close();
-      super.dispose();
-    }
+  @override
+  void dispose() {
+    controller.dispose();
+    widget.interpreter.close();
+    super.dispose();
+  }
 
-    Future<void> _onRecordButtonPressed() async {
-      try {
-        if (controller.value.isRecordingVideo) {
-          final path = await controller.stopVideoRecording();
-          setState(() {
-            _videoPath = path as String;
-          });
-        } else {
-          await _initializeControllerFuture;
-          final now = DateTime.now();
-          final formattedDate =
-              '${now.year}-${now.month}-${now.day} ${now.hour}-${now.minute}-${now.second}';
-          final fileName = 'hoopster_${formattedDate}.mp4';
-          final path = '${Directory.systemTemp.path}/$fileName';
-        }
-      } catch (e) {
-        print(e);
+  Future<void> _onRecordButtonPressed() async {
+    try {
+      if (controller.value.isRecordingVideo) {
+        final path = await controller.stopVideoRecording();
+        setState(() {
+          _videoPath = path as String;
+        });
+      } else {
+        await _initializeControllerFuture;
+        final now = DateTime.now();
+        final formattedDate =
+            '${now.year}-${now.month}-${now.day} ${now.hour}-${now.minute}-${now.second}';
+        final fileName = 'hoopster_${formattedDate}.mp4';
+        final path = '${Directory.systemTemp.path}/$fileName';
       }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -309,11 +318,12 @@ class ImageUtils {
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
+  print('ranonce');
   TensorImage inputImage = l[0];
   late tfl.Interpreter? interpreter;
-  double w = l[2];
-  double h = l[3];
   var _outputShapes = l[4];
+  int height = l[2];
+  int width = l[3];
 
   try {
     interpreter = tfl.Interpreter.fromAddress(l[1]
@@ -333,48 +343,46 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     2: outputScores.buffer,
     3: numLocations.buffer,
   };
-  List<BoundingBox>? boxes = [];
+
   interpreter!.runForMultipleInputs([inputImage.buffer], outputs);
-  ByteBuffer? locationBuffer = outputs[0] as ByteBuffer;
-  ByteBuffer? classBuffer = outputs[1] as ByteBuffer;
-  ByteBuffer? scoreBuffer = outputs[2] as ByteBuffer;
-  int resultsCount = min(10, numLocations.getIntValue(0));
-  Float32List? locations = locationBuffer.asFloat32List();
-  Float32List? classes = classBuffer.asFloat32List();
-  Float32List? scores = scoreBuffer.asFloat32List();
+  List<Rect>? locations = BoundingBoxUtils.convert(
+    tensor: outputLocations,
+    valueIndex: [1, 0, 3, 2],
+    boundingBoxAxis: 2,
+    boundingBoxType: BoundingBoxType.BOUNDARIES,
+    coordinateType: CoordinateType.RATIO,
+    height: INPUT_SIZE,
+    width: INPUT_SIZE,
+  );
+  List<BoundingBox>? boxes = [];
 
-  for (int i = 0; i < scores.length; i++) {
-    if (scores[i] > 0.5 && classes[i].toInt() == 71) {
-      timesRecorded.add(DateTime.now());
-      int baseIdx = i * 4;
-      print(labels[classes[i].toInt()]);
-      print(scores[i]);
+  for (int i = 0; i < 10; i++) {
+    var score = outputScores.getDoubleValue(i);
 
-      double scaledX = (locations[baseIdx] * w) / 300;
-      double scaledY = (locations[baseIdx + 1] * h) / 300;
-      double scaledWidth = (locations[baseIdx + 2] * w) / 300;
-      double scaledHeight = (locations[baseIdx + 3] * h) / 300;
+    // Label string
+    var labelIndex = outputClasses.getIntValue(i) + 1;
+    var label = labels.elementAt(labelIndex);
+
+    if (score > 0.4) {
+      Rect transformedRect =
+          imageProcessor!.inverseTransformRect(locations[i], height, width);
 
       boxes.add(
         BoundingBox(
-          x: scaledX,
-          y: scaledY,
-          width: scaledWidth,
-          height: scaledHeight,
-          confidence: scores[i],
-          classId: classes[i].toInt(),
-        ),
+            x: transformedRect.topLeft.dx,
+            y: transformedRect.topLeft.dy,
+            width: transformedRect.width,
+            height: transformedRect.height,
+            confidence: score,
+            classId: labelIndex),
       );
     }
   }
 
   _outputShapes = null;
-  scores = null;
-  classes = null;
+
   locations = null;
-  scoreBuffer = null;
-  classBuffer = null;
-  locationBuffer = null;
+
   outputs = null;
   interpreter = null;
   return boxes;
@@ -402,7 +410,6 @@ class RectanglePainter extends CustomPainter {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
       print(labels[box.classId]);
-      print(box.confidence);
     }
   }
 
@@ -415,13 +422,17 @@ class RectanglePainter extends CustomPainter {
 }
 
 TensorImage processor(TensorImage inputImage) {
-  padSize = max(inputImage.height, inputImage.width);
-  ImageProcessor imageProcessor = ImageProcessorBuilder()
-      .add(ResizeWithCropOrPadOp(padSize, padSize))
-      .add(ResizeOp(INPUT_SIZE, INPUT_SIZE, ResizeMethod.BILINEAR))
-      .build();
+  if (imageProcessor == null) {
+    height = inputImage.height;
+    width = inputImage.width;
+    double padsize = max(height, width);
+    imageProcessor = ImageProcessorBuilder()
+        .add(ResizeWithCropOrPadOp(padSize, padSize))
+        .add(ResizeOp(INPUT_SIZE, INPUT_SIZE, ResizeMethod.BILINEAR))
+        .build();
+  }
 
-  inputImage = imageProcessor.process(inputImage);
+  inputImage = imageProcessor!.process(inputImage);
   return inputImage;
 }
 
@@ -535,7 +546,7 @@ double fromDateTodouble(DateTime d) {
 }
 
 Future<List<String>> loadLabelsFromFile() async {
-  String filePath = 'AssetsFolder\\labelmap.txt';
+  String filePath = 'assets/labelmap.txt';
 
   try {
     File file = File(filePath);
