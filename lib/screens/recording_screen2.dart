@@ -25,7 +25,7 @@ import 'output_processing.dart';
 
 late int padSize;
 int i = 0;
-
+final _outputShapes = [];
 late CameraImage _cameraImage;
 bool isprocessing = false;
 int counter = 0;
@@ -72,6 +72,7 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void initState() {
     super.initState();
+
     controller = CameraController(
       cameras.last,
       ResolutionPreset.medium,
@@ -79,6 +80,10 @@ class _CameraAppState extends State<CameraApp> {
 
     _initializeControllerFuture = controller.initialize().then((_) async {
       var address = widget.interpreter.address;
+      var outputTensors = widget.interpreter.getOutputTensors();
+      outputTensors.forEach((tensor) {
+        _outputShapes.add(tensor.shape);
+      });
       if (!mounted) {
         return;
       }
@@ -113,8 +118,9 @@ class _CameraAppState extends State<CameraApp> {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
-      boxes = await compute(
-          processCameraFrame, [imagine, address, widget.w, widget.h]);
+      assert(_outputShapes != []);
+      boxes = await compute(processCameraFrame,
+          [imagine, address, widget.w, widget.h, _outputShapes]);
 
       setState(() {});
       for (var element in boxes) {}
@@ -304,9 +310,10 @@ class ImageUtils {
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
   TensorImage inputImage = l[0];
-  late tfl.Interpreter interpreter;
+  late tfl.Interpreter? interpreter;
   double w = l[2];
   double h = l[3];
+  var _outputShapes = l[4];
 
   try {
     interpreter = tfl.Interpreter.fromAddress(l[1]
@@ -316,115 +323,55 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     print('Error loading model: $e');
   }
 
-  try {
-    var outputTensors = interpreter.getOutputTensors();
+  TensorBuffer? outputLocations = TensorBufferFloat(_outputShapes[0]);
+  TensorBuffer? outputClasses = TensorBufferFloat(_outputShapes[1]);
+  TensorBuffer? outputScores = TensorBufferFloat(_outputShapes[2]);
+  TensorBuffer? numLocations = TensorBufferFloat(_outputShapes[3]);
+  Map<int, Object>? outputs = {
+    0: outputLocations.buffer,
+    1: outputClasses.buffer,
+    2: outputScores.buffer,
+    3: numLocations.buffer,
+  };
+  List<BoundingBox>? boxes = [];
+  interpreter!.runForMultipleInputs([inputImage.buffer], outputs);
+  ByteBuffer? locationBuffer = outputs[0] as ByteBuffer;
+  ByteBuffer? classBuffer = outputs[1] as ByteBuffer;
+  ByteBuffer? scoreBuffer = outputs[2] as ByteBuffer;
+  int resultsCount = min(10, numLocations.getIntValue(0));
+  Float32List? locations = locationBuffer.asFloat32List();
+  Float32List? classes = classBuffer.asFloat32List();
+  Float32List? scores = scoreBuffer.asFloat32List();
 
-    var _outputShapes = [];
-    var _outputTypes = [];
-    outputTensors.forEach((tensor) {
-      _outputShapes.add(tensor.shape);
-      _outputTypes.add(tensor.type);
-    });
-
-    TensorBuffer outputLocations = TensorBufferFloat(_outputShapes[0]);
-    TensorBuffer outputClasses = TensorBufferFloat(_outputShapes[1]);
-    TensorBuffer outputScores = TensorBufferFloat(_outputShapes[2]);
-    TensorBuffer numLocations = TensorBufferFloat(_outputShapes[3]);
-    Map<int, Object> outputs = {
-      0: outputLocations.buffer,
-      1: outputClasses.buffer,
-      2: outputScores.buffer,
-      3: numLocations.buffer,
-    };
-    List<BoundingBox> boxes = [];
-    interpreter.runForMultipleInputs([inputImage.buffer], outputs);
-    ByteBuffer locationBuffer = outputs[0] as ByteBuffer;
-    ByteBuffer classBuffer = outputs[1] as ByteBuffer;
-    ByteBuffer scoreBuffer = outputs[2] as ByteBuffer;
-    int resultsCount = min(10, numLocations.getIntValue(0));
-    Float32List locations = locationBuffer.asFloat32List();
-    Float32List classes = classBuffer.asFloat32List();
-    Float32List scores = scoreBuffer.asFloat32List();
-
-    List<Rect> locations_ = BoundingBoxUtils.convert(
-      tensor: outputLocations,
-      valueIndex: [1, 0, 3, 2],
-      boundingBoxAxis: 2,
-      boundingBoxType: BoundingBoxType.BOUNDARIES,
-      coordinateType: CoordinateType.RATIO,
-      height: 300,
-      width: 300,
-    );
-
-    List<BoundingBox> recognitions = [];
-
-    for (int i = 0; i < resultsCount; i++) {
-      // Prediction score
-      var score = outputScores.getDoubleValue(i);
-
-      // Label string
-      var labelIndex = outputClasses.getIntValue(i) + 1;
-      //var label = _labels.elementAt(labelIndex);
-
-      if (score > 0.1) {
-        // inverse of rect
-        // [locations] corresponds to the image size 300 X 300
-        // inverseTransformRect transforms it our [inputImage]
-        /* Rect transformedRect = imageProcessor.inverseTransformRect(
-            locations[i], image.height, image.width);*/
-
-        /*recognitions.add(
-          Recognition(i, label, score, transformedRect),
-        );*/
-      }
-    }
-
-    for (int i = 0; i < scores.length; i++) {
-      if (scores[i] > 0.5 && labels[classes[i].toInt()] == "sports ball") {
+  for (int i = 0; i < scores.length; i++) {
+    if (scores[i] > 0.5  && classes[i].toInt() == 71) {
         timesRecorded.add(DateTime.now());
-        int baseIdx = i * 4;
+      int baseIdx = i * 4;
         print(labels[classes[i].toInt()]);
         print(scores[i]);
 
-        boxes.add(
-          BoundingBox(
-            x: locations[baseIdx] * w,
-            y: locations[baseIdx + 1] * h,
-            width: locations[baseIdx + 2] * w,
-            height: locations[baseIdx + 3] * h,
-            confidence: scores[i],
-            classId: classes[i].toInt(),
-          ),
-        );
-      }
-    }
-
-    return boxes;
-  } catch (e) {
-    print(e.toString());
-
-    return [];
-  }
-}
-
-void processInferenceResults(List<dynamic> output) {
-  List<Map<String, dynamic>> labels = [];
-  for (dynamic label in output) {
-    String text = label['label'];
-    double confidence = label['confidence'];
-    Map<String, dynamic> coordinates = label['rect'];
-    // Check if the label is "ball" or "hoop"
-    if (text == "ball" || text == "hoop") {
-      labels.add({
-        'text': text,
-        'confidence': confidence,
-        'coordinates': coordinates,
-      });
+      boxes.add(
+        BoundingBox(
+          x: locations[baseIdx] * w,
+          y: locations[baseIdx + 1] * h,
+          width: locations[baseIdx + 2] * w,
+          height: locations[baseIdx + 3] * h,
+          confidence: scores[i],
+          classId: classes[i].toInt(),
+        ),
+      );
     }
   }
-  if (labels.isEmpty) {
-    return;
-  }
+  _outputShapes = null;
+  scores = null;
+  classes = null;
+  locations = null;
+  scoreBuffer = null;
+  classBuffer = null;
+  locationBuffer = null;
+  outputs = null;
+  interpreter = null;
+  return boxes;
 }
 
 img.Image fromFltoIM(Float32List F32l) {
@@ -448,7 +395,8 @@ class RectanglePainter extends CustomPainter {
     for (var box in boxes) {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
-      //print(labels[box.classId]);
+      print(labels[box.classId]);
+      print(box.confidence);
     }
   }
 
