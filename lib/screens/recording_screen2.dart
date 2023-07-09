@@ -39,8 +39,10 @@ late double scalex;
 late double scaley;
 
 class CameraApp extends StatefulWidget {
+  late double? w = null;
+  late double? h = null;
   final tfl.Interpreter interpreter;
-  const CameraApp({Key? key, required this.interpreter}) : super(key: key);
+  CameraApp({Key? key, required this.interpreter}) : super(key: key);
   @override
   State<CameraApp> createState() => _CameraAppState();
 }
@@ -88,11 +90,9 @@ class _CameraAppState extends State<CameraApp> {
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
     if (!isprocessing) {
       isprocessing = true;
-      img.Image? imago = ImageUtils.convertYUV420ToImage(image);
-      imago = img.copyResizeCropSquare(imago, size: 416);
-      Uint8List byteList = Uint8List.fromList(imago.getBytes());
-      imago = null;
-      boxes = await compute(processCameraFrame, [byteList, address]);
+
+      boxes = await compute(
+          processCameraFrame, [image, address, widget.w, widget.h]);
       isprocessing = false;
     }
   }
@@ -133,6 +133,8 @@ class _CameraAppState extends State<CameraApp> {
 
   @override
   Widget build(BuildContext context) {
+    widget.w = MediaQuery.of(context).size.width;
+    widget.h = MediaQuery.of(context).size.height;
     if (!controller.value.isInitialized) {
       return Container(
         color: Color.fromARGB(255, 255, 0, 0),
@@ -259,7 +261,12 @@ class ImageUtils {
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
-  Uint8List byteList = l[0];
+  CameraImage image = l[0];
+  double h = l[3];
+  double w = l[2];
+  img.Image? imago = ImageUtils.convertYUV420ToImage(image);
+  imago = img.copyResizeCropSquare(imago, size: 416);
+  Uint8List byteList = Uint8List.fromList(imago.getBytes());
   late tfl.Interpreter interpreter;
 
   try {
@@ -290,9 +297,9 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     imgReshaped = null;
     outputBuffer = null;
 
-    var boxes = decodeTensor(outputResult, 0.45);
+    var boxes = decodeTensor(outputResult, 0.45, w, h);
     outputResult = null;
-    RectanglePainter.torepaint = true;
+
     return boxes;
   } catch (e) {
     return [];
@@ -327,9 +334,8 @@ img.Image fromFltoIM(Float32List F32l) {
 }
 
 class RectanglePainter extends CustomPainter {
-  static bool torepaint = false;
-  List<BoundingBox> topaint;
-  RectanglePainter(this.topaint);
+  List<BoundingBox> boxes;
+  RectanglePainter(this.boxes);
 
   @override
   void paint(Canvas canvas, size) {
@@ -342,11 +348,10 @@ class RectanglePainter extends CustomPainter {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
     }
-    torepaint = true;
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return torepaint; // No need to repaint since the rectangle is static
+  bool shouldRepaint(RectanglePainter oldDelegate) {
+    return boxes == oldDelegate.boxes;
   }
 }

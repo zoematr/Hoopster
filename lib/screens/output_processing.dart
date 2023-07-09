@@ -16,7 +16,7 @@ double sigmoid(double x) {
   return 1 / (1 + math.exp(-x));
 }
 
-List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
+List<BoundingBox> decodeTensor(List<double> tensor, double threshold, w, h) {
   int gridSize = 13;
   int numBoxes = 5;
   int numClasses = 2;
@@ -64,12 +64,12 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
           }
 
           double finalScore = confidence * maxClassProb;
-          if (finalScore > threshold) {
+          if (finalScore > 0.45) {
             boxes.add(BoundingBox(
-                x: centerX,
-                y: centerY,
-                width: width,
-                height: height,
+                x: centerX * w,
+                y: centerY * h,
+                width: width * w,
+                height: height * h,
                 confidence: finalScore,
                 classId: classId));
           }
@@ -77,6 +77,5 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold) {
       }
     }
   }
-  print(boxes.length);
   return boxes;
 }
