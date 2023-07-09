@@ -6,7 +6,7 @@ double parabolicFunc(double x, Vector coefficients) {
   return coefficients[0] * x * x + coefficients[1] * x + coefficients[2];
 }
 
-bool ParabolaChecker(List<List<double>> l) {
+bool ParabolaChecker(List<dynamic> l) {
   /*
    //Load the object's position data over time from a file
   var data = File('object_position_data.txt').readAsStringSync();

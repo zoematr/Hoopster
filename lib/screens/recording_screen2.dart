@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:hoopster/Parabola.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/screens/recording_screen2.dart';
 import 'package:hoopster/statsObjects.dart';
@@ -42,6 +43,10 @@ late double scaley;
 List<List<double>> coorFinger = [];
 bool StopModel = true;
 int tap = 0;
+List<DateTime> timesRecorded = [];
+late DateTime time;
+double conf = 0.5;
+int ballClass = 38;
 
 class CameraApp extends StatefulWidget {
   final tfl.Interpreter interpreter;
@@ -53,6 +58,9 @@ class CameraApp extends StatefulWidget {
 class _CameraAppState extends State<CameraApp> {
   late CameraController controller;
   late Future<void> _initializeControllerFuture;
+  _CameraAppState() {
+    //time = DateTime.now();
+  }
 
   String _videoPath = '';
 
@@ -331,16 +339,54 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     Float32List locations = locationBuffer.asFloat32List();
     Float32List classes = classBuffer.asFloat32List();
     Float32List scores = scoreBuffer.asFloat32List();
+
+    List<Rect> locations_ = BoundingBoxUtils.convert(
+      tensor: outputLocations,
+      valueIndex: [1, 0, 3, 2],
+      boundingBoxAxis: 2,
+      boundingBoxType: BoundingBoxType.BOUNDARIES,
+      coordinateType: CoordinateType.RATIO,
+      height: 300,
+      width: 300,
+    );
+
+    List<BoundingBox> recognitions = [];
+
     for (int i = 0; i < resultsCount; i++) {
-      if (scores[i] > 0.1) {
+      // Prediction score
+      var score = outputScores.getDoubleValue(i);
+
+      // Label string
+      var labelIndex = outputClasses.getIntValue(i) + 1;
+      //var label = _labels.elementAt(labelIndex);
+
+      if (score > 0.1) {
+        print(score);
+        print(labelIndex);
+        // inverse of rect
+        // [locations] corresponds to the image size 300 X 300
+        // inverseTransformRect transforms it our [inputImage]
+        /* Rect transformedRect = imageProcessor.inverseTransformRect(
+            locations[i], image.height, image.width);*/
+
+        /*recognitions.add(
+          Recognition(i, label, score, transformedRect),
+        );*/
+      }
+    }
+
+    /*for (int i = 0; i < resultsCount; i++) {
+      if (scores[i] > 0.1 && classes[i].toInt() == ballClass) {
+        timesRecorded.add(DateTime.now());
         int baseIdx = i * 4;
-        
+
         print([
           locations[baseIdx] * w,
           locations[baseIdx + 1] * h,
           scores[i],
           classes[i].toInt()
-                  ]);
+        ]);
+
         boxes.add(
           BoundingBox(
             x: locations[baseIdx] * w,
@@ -352,7 +398,7 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
           ),
         );
       }
-    }
+    }*/
 
     return boxes;
   } catch (e) {
@@ -498,8 +544,9 @@ Point _calculateNormalizedPoint(
   return Point(normalizedX, normalizedY);
 }
 
-void ShotLogicHandler() {
-
-
-  
+void ShotLogicHandler(
+    List<DateTime> time, List<BoundingBox> BallBoxes, List<List<double>> hoop) {
+  if (time.length >= 3) {
+    ParabolaChecker(time);
+  }
 }
