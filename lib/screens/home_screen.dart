@@ -250,7 +250,7 @@ List<String> labels = [
   'microwave',
   'oven',
   'toaster',
-  'sink',
+  'sports ball',
   'refrigerator',
   'book',
   'clock',

@@ -25,7 +25,6 @@ import 'output_processing.dart';
 late int padSize;
 int i = 0;
 
-List<String> Labels = [];
 late CameraImage _cameraImage;
 bool isprocessing = false;
 int counter = 0;
@@ -380,7 +379,7 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     }
 
     for (int i = 0; i < scores.length; i++) {
-      if (scores[i] > 0.5 && classes[i].toInt() == 71) {
+      if (scores[i] > 0.5) {
         int baseIdx = i * 4;
 
         boxes.add(
@@ -445,7 +444,7 @@ class RectanglePainter extends CustomPainter {
     for (var box in boxes) {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
-      print(Labels[box.classId]);
+      print(labels[box.classId]);
     }
   }
 
