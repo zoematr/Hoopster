@@ -379,9 +379,8 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
       }
     }
 
-    for (int i = 0; i < 10; i++) {
-      if (scores[i] > 0.1) {
-        timesRecorded.add(DateTime.now());
+    for (int i = 0; i < scores.length; i++) {
+      if (scores[i] > 0.5 && classes[i].toInt() == 71) {
         int baseIdx = i * 4;
 
         boxes.add(
@@ -444,11 +443,9 @@ class RectanglePainter extends CustomPainter {
       ..strokeWidth = 3;
 
     for (var box in boxes) {
-      print(box.x);
-      print(box.y);
-      print(box.width);
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
+      print(Labels[box.classId]);
     }
   }
 

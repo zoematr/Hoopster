@@ -60,6 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
   _HomeScreenState(/*this.firstCamera*/);
   @override
   Widget build(BuildContext context) {
+    w = MediaQuery.of(context).size.width;
+    h = MediaQuery.of(context).size.height;
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 93, 70, 94),
       appBar: AppBar(
