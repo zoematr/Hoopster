@@ -61,7 +61,7 @@ class _CameraAppState extends State<CameraApp> {
     super.initState();
 
     controller = CameraController(
-      cameras.last,
+      cameras.first,
       ResolutionPreset.medium,
     );
 
@@ -75,7 +75,7 @@ class _CameraAppState extends State<CameraApp> {
           await _cameraFrameProcessing(image, address);
           //print("started");
         }
-        print(StopModel);
+        //print(StopModel);
         counter++;
         if (counter % 100 == 0) {
           _cameraImage = image;
@@ -96,7 +96,7 @@ class _CameraAppState extends State<CameraApp> {
   }
 
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
-    print("The quick brown fox jumped over the lazy dog");
+    //print("The quick brown fox jumped over the lazy dog");
     if (!isprocessing) {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
@@ -209,7 +209,6 @@ class _CameraAppState extends State<CameraApp> {
                         onTap: () => {
                           //capture(),
                           setState(() {
-                            
                             if (tap % 2 == 0) {
                               tap++;
                               StopModel = false;
@@ -217,7 +216,6 @@ class _CameraAppState extends State<CameraApp> {
                               tap++;
                               StopModel == true;
                             }
-                            
 
                             Miss++;
                             Hit++;
@@ -292,6 +290,7 @@ class ImageUtils {
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
+  print("\n");
   TensorImage inputImage = l[0];
   late tfl.Interpreter interpreter;
 
@@ -335,6 +334,13 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     for (int i = 0; i < resultsCount; i++) {
       if (scores[i] > 0.1) {
         int baseIdx = i * 4;
+        
+        print([
+          locations[baseIdx] * w,
+          locations[baseIdx + 1] * h,
+          scores[i],
+          classes[i].toInt()
+                  ]);
         boxes.add(
           BoundingBox(
             x: locations[baseIdx] * w,
@@ -492,4 +498,8 @@ Point _calculateNormalizedPoint(
   return Point(normalizedX, normalizedY);
 }
 
-void ShotLogicHandler() {}
+void ShotLogicHandler() {
+
+
+  
+}

@@ -6,7 +6,7 @@ double parabolicFunc(double x, Vector coefficients) {
   return coefficients[0] * x * x + coefficients[1] * x + coefficients[2];
 }
 
-void main() {
+bool ParabolaChecker(List<List<double>> l) {
   /*
    //Load the object's position data over time from a file
   var data = File('object_position_data.txt').readAsStringSync();
@@ -25,9 +25,9 @@ void main() {
     y_pos.add(double.parse(values[2]));
   }
 */
-  List<double> t = [1, 2, 3, 4, 5, 6, 7, 8];
-  List<double> x_pos = [1, 2, 3, 4, 5, 6, 7, 8];
-  List<double> y_pos = [2, 5, 10, 17, 26, 37, 50, 65];
+  List<double> t = l[0];
+  List<double> x_pos = l[1];
+  List<double> y_pos = l[2];
   // Fit a second-degree polynomial curve to the x and y coordinates of the object
   var Liste = List.filled(t.length, 1);
   var xMatrix = Matrix.fromColumns([
@@ -90,7 +90,9 @@ void main() {
   // Determine whether the object followed a parabolic motion or not
   if (rSquared_x >= 0.95 && rSquared_y >= 0.95) {
     print('The object followed a parabolic motion.');
+    return true;
   } else {
     print('The object did not follow a parabolic motion.');
+    return false;
   }
 }
