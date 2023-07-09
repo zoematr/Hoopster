@@ -2,31 +2,31 @@ import 'dart:math';
 
 import 'package:hoopster/screens/recording_screen2.dart';
 
-bool ShotChecker(List<List<int>> hoop, List<List<int>> ball) {
-  List<int> Hcorner1 = hoop[0];
-  List<int> Hcorner2 = hoop[1];
-  List<int> Hcorner3 = hoop[2];
-  List<int> Hcorner4 = hoop[3];
+bool ShotChecker(List<List<double>> hoop, List<List<double>> ball) {
+  List<double> Hcorner1 = hoop[0];
+  List<double> Hcorner2 = hoop[1];
+  List<double> Hcorner3 = hoop[2];
+  List<double> Hcorner4 = hoop[3];
 
-  List<int> Bcorner1 = ball[0];
-  List<int> Bcorner2 = ball[1];
-  List<int> Bcorner3 = ball[2];
-  List<int> Bcorner4 = ball[3];
+  List<double> Bcorner1 = ball[0];
+  List<double> Bcorner2 = ball[1];
+  List<double> Bcorner3 = ball[2];
+  List<double> Bcorner4 = ball[3];
 
-  int Hlato1 = (Hcorner1[0] - Hcorner2[0]).abs();
-  int Hlato2 = (Hcorner2[1] - Hcorner4[1]).abs();
-  int Hlato3 = (Hcorner3[0] - Hcorner4[0]).abs();
-  int Hlato4 = (Hcorner1[1] - Hcorner3[1]).abs();
+  double Hlato1 = (Hcorner1[0] - Hcorner2[0]).abs();
+  double Hlato2 = (Hcorner2[1] - Hcorner4[1]).abs();
+  double Hlato3 = (Hcorner3[0] - Hcorner4[0]).abs();
+  double Hlato4 = (Hcorner1[1] - Hcorner3[1]).abs();
 
-  int Blato1 = (Bcorner1[0] - Bcorner2[0]).abs();
-  int Blato2 = (Bcorner2[1] - Bcorner4[1]).abs();
-  int Blato3 = (Bcorner3[0] - Bcorner4[0]).abs();
-  int Blato4 = (Bcorner1[1] - Bcorner3[1]).abs();
+  double Blato1 = (Bcorner1[0] - Bcorner2[0]).abs();
+  double Blato2 = (Bcorner2[1] - Bcorner4[1]).abs();
+  double Blato3 = (Bcorner3[0] - Bcorner4[0]).abs();
+  double Blato4 = (Bcorner1[1] - Bcorner3[1]).abs();
 
-  int AH = Hlato1 * Hlato2;
-  int AB = Blato1 * Blato2;
+  double AH = Hlato1 * Hlato2;
+  double AB = Blato1 * Blato2;
 
-  int BA = bigger(AH, AB);
+  double BA = bigger(AH, AB);
 
   bool made = false;
   //List<Point> Lrect1 = computeRectangle(hoop);
@@ -93,7 +93,7 @@ List<Point> generateSquareCoordinates(
   return squareCoordinates;
 }
 */
-int bigger(int A1, int A2) {
+double bigger(double A1, double A2) {
   if (A1 >= A2) {
     return A1;
   } else {

@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hoopster/Parabola.dart';
 import 'package:hoopster/PermanentStorage.dart';
+import 'package:hoopster/ShotChecker.dart';
 import 'package:hoopster/screens/recording_screen2.dart';
 import 'package:hoopster/statsObjects.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
@@ -545,8 +546,36 @@ Point _calculateNormalizedPoint(
 }
 
 void ShotLogicHandler(
-    List<DateTime> time, List<BoundingBox> BallBoxes, List<List<double>> hoop) {
-  if (time.length >= 3) {
-    ParabolaChecker(time);
+    List<DateTime> Time, List<BoundingBox> BallBoxes, List<List<double>> Hoop) {
+  if (Time.length >= 3) {
+    bool _made = false;
+    List<double> lx = [];
+    List<double> ly = [];
+    List<double> ti = [];
+    List<List<double>> cr = [];
+    for (int i = 0; i < BallBoxes.length; i++) {
+      cr.add([BallBoxes[i].x, BallBoxes[i].y]);
+      lx.add(BallBoxes[i].x);
+      ly.add(BallBoxes[i].y);
+      ti.add(fromDateTodouble(Time[i]));
+    }
+
+    bool _isIt = ParabolaChecker([time, lx, ly]);
+
+    if (_isIt) {
+      _made = ShotChecker(cr, Hoop);
+    }
+    if (_made) {
+      Hit++;
+    } else {
+      Miss++;
+    }
   }
+}
+
+double fromDateTodouble(DateTime d) {
+  double t = 0;
+  String s = "$d.minutes.$d.millisecond";
+  t = double.parse(s);
+  return t;
 }
