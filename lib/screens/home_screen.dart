@@ -11,8 +11,8 @@ import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:hoopster/statsObjects.dart';
 
 //late List<CameraDescription> _cameras;
-late double h;
-late double w;
+double h = 0;
+double w = 0;
 //List<int> bo = [1, 2, 3, 4, 5, 6, 7];
 /*List<List<double>> tr0 = [
   [20.03, 02.04, 02.04],
@@ -60,8 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
   _HomeScreenState(/*this.firstCamera*/);
   @override
   Widget build(BuildContext context) {
-    w = MediaQuery.of(context).size.width;
-    h = MediaQuery.of(context).size.height;
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 93, 70, 94),
       appBar: AppBar(
@@ -97,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildButton(
                           context,
                           'Start Recording',
-                          CameraApp(interpreter: interpreter),
+                          CameraApp(interpreter: interpreter, w: w, h: h),
                         ),
                       ),
                     ),

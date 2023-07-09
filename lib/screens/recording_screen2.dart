@@ -113,7 +113,8 @@ class _CameraAppState extends State<CameraApp> {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
-      boxes = await compute(processCameraFrame, [imagine, address]);
+      boxes = await compute(
+          processCameraFrame, [imagine, address, widget.w, widget.h]);
 
       setState(() {});
       for (var element in boxes) {}
@@ -304,6 +305,8 @@ class ImageUtils {
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
   TensorImage inputImage = l[0];
   late tfl.Interpreter interpreter;
+  double w = l[2];
+  double h = l[3];
 
   try {
     interpreter = tfl.Interpreter.fromAddress(l[1]
@@ -375,8 +378,7 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
         );*/
       }
     }
-    print('width');
-    print(w);
+
     for (int i = 0; i < 10; i++) {
       if (scores[i] > 0.1) {
         timesRecorded.add(DateTime.now());
