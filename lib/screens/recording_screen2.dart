@@ -344,24 +344,30 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
   Float32List? scores = scoreBuffer.asFloat32List();
 
   for (int i = 0; i < scores.length; i++) {
-    if (scores[i] > 0.5  && classes[i].toInt() == 71) {
-        timesRecorded.add(DateTime.now());
+    if (scores[i] > 0.5 && classes[i].toInt() == 71) {
+      timesRecorded.add(DateTime.now());
       int baseIdx = i * 4;
-        print(labels[classes[i].toInt()]);
-        print(scores[i]);
+      print(labels[classes[i].toInt()]);
+      print(scores[i]);
+
+      double scaledX = (locations[baseIdx] * w) / 300;
+      double scaledY = (locations[baseIdx + 1] * h) / 300;
+      double scaledWidth = (locations[baseIdx + 2] * w) / 300;
+      double scaledHeight = (locations[baseIdx + 3] * h) / 300;
 
       boxes.add(
         BoundingBox(
-          x: locations[baseIdx] * w,
-          y: locations[baseIdx + 1] * h,
-          width: locations[baseIdx + 2] * w,
-          height: locations[baseIdx + 3] * h,
+          x: scaledX,
+          y: scaledY,
+          width: scaledWidth,
+          height: scaledHeight,
           confidence: scores[i],
           classId: classes[i].toInt(),
         ),
       );
     }
   }
+
   _outputShapes = null;
   scores = null;
   classes = null;
