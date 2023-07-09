@@ -25,6 +25,7 @@ double w = 0;
   [01.04, 02.04, 02.04],
   [92, 78, 32]
 ];*/
+
 statsObjects Graph1 = statsObjects([], "");
 statsObjects Graph2 = statsObjects([], "");
 
@@ -61,7 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     w = MediaQuery.of(context).size.width;
     h = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 93, 70, 94),
       appBar: AppBar(
@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildButton(
                           context,
                           'Start Recording',
-                          CameraApp(interpreter: interpreter),
+                          CameraApp(interpreter: interpreter, w: w, h: h),
                         ),
                       ),
                     ),
@@ -177,3 +177,86 @@ class _HomeScreenState extends State<HomeScreen> {
         ));
   }
 }
+
+List<String> labels = [
+  'person',
+  'bicycle',
+  'car',
+  'motorcycle',
+  'airplane',
+  'bus',
+  'train',
+  'truck',
+  'boat',
+  'traffic light',
+  'fire hydrant',
+  'stop sign',
+  'parking meter',
+  'bench',
+  'bird',
+  'cat',
+  'dog',
+  'horse',
+  'sheep',
+  'cow',
+  'elephant',
+  'bear',
+  'zebra',
+  'giraffe',
+  'backpack',
+  'umbrella',
+  'handbag',
+  'tie',
+  'suitcase',
+  'frisbee',
+  'skis',
+  'snowboard',
+  'sports ball',
+  'kite',
+  'baseball bat',
+  'baseball glove',
+  'skateboard',
+  'surfboard',
+  'tennis racket',
+  'bottle',
+  'wine glass',
+  'cup',
+  'fork',
+  'knife',
+  'spoon',
+  'bowl',
+  'banana',
+  'apple',
+  'sandwich',
+  'orange',
+  'broccoli',
+  'carrot',
+  'hot dog',
+  'pizza',
+  'donut',
+  'cake',
+  'chair',
+  'couch',
+  'potted plant',
+  'bed',
+  'dining table',
+  'toilet',
+  'tv',
+  'laptop',
+  'mouse',
+  'remote',
+  'keyboard',
+  'cell phone',
+  'microwave',
+  'oven',
+  'toaster',
+  'sports ball',
+  'refrigerator',
+  'book',
+  'clock',
+  'vase',
+  'scissors',
+  'teddy bear',
+  'hair drier',
+  'toothbrush',
+];

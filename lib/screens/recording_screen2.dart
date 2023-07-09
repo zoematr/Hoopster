@@ -28,7 +28,6 @@ int i = 0;
 
 late CameraImage _cameraImage;
 bool isprocessing = false;
-List<BoundingBox> boxes = [];
 int counter = 0;
 String lastSaved = "";
 String asset = 'model.tflite';
@@ -50,13 +49,18 @@ double conf = 0.5;
 int ballClass = 38;
 
 class CameraApp extends StatefulWidget {
+  double w;
+  double h;
   final tfl.Interpreter interpreter;
-  const CameraApp({Key? key, required this.interpreter}) : super(key: key);
+  CameraApp(
+      {Key? key, required this.interpreter, required this.h, required this.w})
+      : super(key: key);
   @override
   State<CameraApp> createState() => _CameraAppState();
 }
 
 class _CameraAppState extends State<CameraApp> {
+  List<BoundingBox> boxes = [];
   late CameraController controller;
   late Future<void> _initializeControllerFuture;
   _CameraAppState() {
@@ -68,9 +72,8 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void initState() {
     super.initState();
-
     controller = CameraController(
-      cameras.first,
+      cameras.last,
       ResolutionPreset.medium,
     );
 
@@ -85,12 +88,12 @@ class _CameraAppState extends State<CameraApp> {
           //print("started");
         }
         //print(StopModel);
-        counter++;
         if (counter % 100 == 0) {
           _cameraImage = image;
           setState(() {});
           counterImage++;
         }
+        counter++;
       });
     }).catchError((Object e) {
       if (e is CameraException) {
@@ -110,10 +113,12 @@ class _CameraAppState extends State<CameraApp> {
       isprocessing = true;
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
-      boxes = await compute(processCameraFrame, [imagine, address]);
-      for (var element in boxes) {
-        isprocessing = false;
-      }
+      boxes = await compute(
+          processCameraFrame, [imagine, address, widget.w, widget.h]);
+
+      setState(() {});
+      for (var element in boxes) {}
+      isprocessing = false;
     }
 
     Future<tfl.Interpreter> loadModel() async {
@@ -173,7 +178,6 @@ class _CameraAppState extends State<CameraApp> {
                   coorFinger = [];
                 }
                 coorFinger.add([x, y]);
-                print(coorFinger);
               },
             ),
             Expanded(
@@ -299,9 +303,10 @@ class ImageUtils {
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
-  print("\n");
   TensorImage inputImage = l[0];
   late tfl.Interpreter interpreter;
+  double w = l[2];
+  double h = l[3];
 
   try {
     interpreter = tfl.Interpreter.fromAddress(l[1]
@@ -362,8 +367,6 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
       //var label = _labels.elementAt(labelIndex);
 
       if (score > 0.1) {
-        print(score);
-        print(labelIndex);
         // inverse of rect
         // [locations] corresponds to the image size 300 X 300
         // inverseTransformRect transforms it our [inputImage]
@@ -376,17 +379,12 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
       }
     }
 
-    /*for (int i = 0; i < resultsCount; i++) {
-      if (scores[i] > 0.1 && classes[i].toInt() == ballClass) {
+    for (int i = 0; i < scores.length; i++) {
+      if (scores[i] > 0.5 && labels[classes[i].toInt()] == "sports ball") {
         timesRecorded.add(DateTime.now());
         int baseIdx = i * 4;
-
-        print([
-          locations[baseIdx] * w,
-          locations[baseIdx + 1] * h,
-          scores[i],
-          classes[i].toInt()
-        ]);
+        print(labels[classes[i].toInt()]);
+        print(scores[i]);
 
         boxes.add(
           BoundingBox(
@@ -399,11 +397,12 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
           ),
         );
       }
-    }*/
+    }
 
     return boxes;
   } catch (e) {
     print(e.toString());
+
     return [];
   }
 }
@@ -449,6 +448,7 @@ class RectanglePainter extends CustomPainter {
     for (var box in boxes) {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
+      //print(labels[box.classId]);
     }
   }
 
@@ -578,4 +578,17 @@ double fromDateTodouble(DateTime d) {
   String s = "$d.minutes.$d.millisecond";
   t = double.parse(s);
   return t;
+}
+
+Future<List<String>> loadLabelsFromFile() async {
+  String filePath = 'AssetsFolder\\labelmap.txt';
+
+  try {
+    File file = File(filePath);
+    List<String> labels = await file.readAsLines();
+    return labels;
+  } catch (e) {
+    print('didnt work because: $e');
+    return [];
+  }
 }
