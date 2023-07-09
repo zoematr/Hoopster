@@ -64,7 +64,7 @@ List<BoundingBox> decodeTensor(List<double> tensor, double threshold, w, h) {
           }
 
           double finalScore = confidence * maxClassProb;
-          if (finalScore > 0.45) {
+          if (finalScore > 0.01) {
             boxes.add(BoundingBox(
                 x: centerX * w,
                 y: centerY * h,

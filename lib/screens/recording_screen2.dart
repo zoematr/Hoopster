@@ -93,6 +93,7 @@ class _CameraAppState extends State<CameraApp> {
 
       boxes = await compute(
           processCameraFrame, [image, address, widget.w, widget.h]);
+      print(boxes.length);
       isprocessing = false;
     }
   }
@@ -297,9 +298,9 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     imgReshaped = null;
     outputBuffer = null;
 
-    var boxes = decodeTensor(outputResult, 0.45, w, h);
+    var boxes = decodeTensor(outputResult, 0.2, w, h);
     outputResult = null;
-
+    print(boxes.length);
     return boxes;
   } catch (e) {
     return [];
