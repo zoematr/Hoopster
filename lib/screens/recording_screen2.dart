@@ -25,9 +25,9 @@ import 'output_processing.dart';
 late int padSize;
 int i = 0;
 
+List<String> Labels = [];
 late CameraImage _cameraImage;
 bool isprocessing = false;
-List<BoundingBox> boxes = [];
 int counter = 0;
 String lastSaved = "";
 String asset = 'model.tflite';
@@ -41,7 +41,7 @@ int counterImage = 0;
 late double scalex;
 late double scaley;
 List<List<double>> coorFinger = [];
-bool StopModel = true;
+bool StopModel = false;
 int tap = 0;
 List<DateTime> timesRecorded = [];
 late DateTime time;
@@ -49,13 +49,18 @@ double conf = 0.5;
 int ballClass = 38;
 
 class CameraApp extends StatefulWidget {
+  double w;
+  double h;
   final tfl.Interpreter interpreter;
-  const CameraApp({Key? key, required this.interpreter}) : super(key: key);
+  CameraApp(
+      {Key? key, required this.interpreter, required this.h, required this.w})
+      : super(key: key);
   @override
   State<CameraApp> createState() => _CameraAppState();
 }
 
 class _CameraAppState extends State<CameraApp> {
+  List<BoundingBox> boxes = [];
   late CameraController controller;
   late Future<void> _initializeControllerFuture;
   _CameraAppState() {
@@ -67,7 +72,6 @@ class _CameraAppState extends State<CameraApp> {
   @override
   void initState() {
     super.initState();
-
     controller = CameraController(
       cameras.first,
       ResolutionPreset.medium,
@@ -84,12 +88,12 @@ class _CameraAppState extends State<CameraApp> {
           //print("started");
         }
         //print(StopModel);
-        counter++;
         if (counter % 100 == 0) {
           _cameraImage = image;
           setState(() {});
           counterImage++;
         }
+        counter++;
       });
     }).catchError((Object e) {
       if (e is CameraException) {
@@ -110,9 +114,10 @@ class _CameraAppState extends State<CameraApp> {
       img.Image? imago = ImageUtils.convertYUV420ToImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
       boxes = await compute(processCameraFrame, [imagine, address]);
-      for (var element in boxes) {
-        isprocessing = false;
-      }
+
+      setState(() {});
+      for (var element in boxes) {}
+      isprocessing = false;
     }
 
     Future<tfl.Interpreter> loadModel() async {
@@ -172,7 +177,6 @@ class _CameraAppState extends State<CameraApp> {
                   coorFinger = [];
                 }
                 coorFinger.add([x, y]);
-                print(coorFinger);
               },
             ),
             Expanded(
@@ -298,7 +302,6 @@ class ImageUtils {
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
-  print("\n");
   TensorImage inputImage = l[0];
   late tfl.Interpreter interpreter;
 
@@ -361,8 +364,6 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
       //var label = _labels.elementAt(labelIndex);
 
       if (score > 0.1) {
-        print(score);
-        print(labelIndex);
         // inverse of rect
         // [locations] corresponds to the image size 300 X 300
         // inverseTransformRect transforms it our [inputImage]
@@ -374,18 +375,12 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
         );*/
       }
     }
-
-    /*for (int i = 0; i < resultsCount; i++) {
-      if (scores[i] > 0.1 && classes[i].toInt() == ballClass) {
+    print('width');
+    print(w);
+    for (int i = 0; i < 10; i++) {
+      if (scores[i] > 0.1) {
         timesRecorded.add(DateTime.now());
         int baseIdx = i * 4;
-
-        print([
-          locations[baseIdx] * w,
-          locations[baseIdx + 1] * h,
-          scores[i],
-          classes[i].toInt()
-        ]);
 
         boxes.add(
           BoundingBox(
@@ -398,11 +393,12 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
           ),
         );
       }
-    }*/
+    }
 
     return boxes;
   } catch (e) {
     print(e.toString());
+
     return [];
   }
 }
@@ -446,6 +442,9 @@ class RectanglePainter extends CustomPainter {
       ..strokeWidth = 3;
 
     for (var box in boxes) {
+      print(box.x);
+      print(box.y);
+      print(box.width);
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
     }
@@ -548,5 +547,18 @@ void ShotLogicHandler(
     List<DateTime> time, List<BoundingBox> BallBoxes, List<List<double>> hoop) {
   if (time.length >= 3) {
     ParabolaChecker(time);
+  }
+}
+
+Future<List<String>> loadLabelsFromFile() async {
+  String filePath = 'assets/labelmap.txt';
+
+  try {
+    File file = File(filePath);
+    List<String> labels = await file.readAsLines();
+    return labels;
+  } catch (e) {
+    print('didnt work because: $e');
+    return [];
   }
 }

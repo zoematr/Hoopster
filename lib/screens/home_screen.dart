@@ -11,8 +11,8 @@ import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:hoopster/statsObjects.dart';
 
 //late List<CameraDescription> _cameras;
-double h = 0;
-double w = 0;
+late double h;
+late double w;
 //List<int> bo = [1, 2, 3, 4, 5, 6, 7];
 /*List<List<double>> tr0 = [
   [20.03, 02.04, 02.04],
@@ -25,6 +25,7 @@ double w = 0;
   [01.04, 02.04, 02.04],
   [92, 78, 32]
 ];*/
+
 statsObjects Graph1 = statsObjects([], "");
 statsObjects Graph2 = statsObjects([], "");
 
@@ -43,7 +44,7 @@ Widget globalUpdate() {
   );
 }
 
-String basketButton = "AssetsFolder\\BasketButton.png";
+String basketButton = "assets/BasketButton.png";
 Widget lView = globalUpdate();
 
 class HomeScreen extends StatefulWidget {
@@ -61,7 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     w = MediaQuery.of(context).size.width;
     h = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 93, 70, 94),
       appBar: AppBar(
@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Color.fromARGB(255, 0, 0, 0),
       ),
       body: FutureBuilder(
-        future: tfl.Interpreter.fromAsset('AssetsFolder\\detect.tflite'),
+        future: tfl.Interpreter.fromAsset('detect.tflite'),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             // Display a loading indicator while waiting for the async operation to complete
@@ -177,3 +177,86 @@ class _HomeScreenState extends State<HomeScreen> {
         ));
   }
 }
+
+List<String> labels = [
+  'person',
+  'bicycle',
+  'car',
+  'motorcycle',
+  'airplane',
+  'bus',
+  'train',
+  'truck',
+  'boat',
+  'traffic light',
+  'fire hydrant',
+  'stop sign',
+  'parking meter',
+  'bench',
+  'bird',
+  'cat',
+  'dog',
+  'horse',
+  'sheep',
+  'cow',
+  'elephant',
+  'bear',
+  'zebra',
+  'giraffe',
+  'backpack',
+  'umbrella',
+  'handbag',
+  'tie',
+  'suitcase',
+  'frisbee',
+  'skis',
+  'snowboard',
+  'sports ball',
+  'kite',
+  'baseball bat',
+  'baseball glove',
+  'skateboard',
+  'surfboard',
+  'tennis racket',
+  'bottle',
+  'wine glass',
+  'cup',
+  'fork',
+  'knife',
+  'spoon',
+  'bowl',
+  'banana',
+  'apple',
+  'sandwich',
+  'orange',
+  'broccoli',
+  'carrot',
+  'hot dog',
+  'pizza',
+  'donut',
+  'cake',
+  'chair',
+  'couch',
+  'potted plant',
+  'bed',
+  'dining table',
+  'toilet',
+  'tv',
+  'laptop',
+  'mouse',
+  'remote',
+  'keyboard',
+  'cell phone',
+  'microwave',
+  'oven',
+  'toaster',
+  'sink',
+  'refrigerator',
+  'book',
+  'clock',
+  'vase',
+  'scissors',
+  'teddy bear',
+  'hair drier',
+  'toothbrush',
+];
