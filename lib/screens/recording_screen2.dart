@@ -91,7 +91,6 @@ class _CameraAppState extends State<CameraApp> {
       }
       controller.startImageStream((image) async {
         if (!StopModel) {
-          print('ok');
           await _cameraFrameProcessing(image, address);
         }
         //print(StopModel);
@@ -318,7 +317,7 @@ class ImageUtils {
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
-  print('ranonce');
+  print('weve come too far to give up now');
   TensorImage inputImage = l[0];
   late tfl.Interpreter? interpreter;
   var _outputShapes = l[4];
