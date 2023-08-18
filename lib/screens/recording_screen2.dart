@@ -424,7 +424,7 @@ TensorImage processor(TensorImage inputImage) {
   if (imageProcessor == null) {
     height = inputImage.height;
     width = inputImage.width;
-    double padsize = max(height, width);
+    int padSize = max(height, width);
     imageProcessor = ImageProcessorBuilder()
         .add(ResizeWithCropOrPadOp(padSize, padSize))
         .add(ResizeOp(INPUT_SIZE, INPUT_SIZE, ResizeMethod.BILINEAR))
