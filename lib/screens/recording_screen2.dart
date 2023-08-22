@@ -32,7 +32,7 @@ late CameraImage _cameraImage;
 bool isprocessing = false;
 int counter = 0;
 String lastSaved = "";
-String asset = 'model.tflite';
+String asset = 'AssetsFolder\\detect.tflite';
 bool saveimage = true;
 late ByteData byteData;
 int Hit = 0;
@@ -76,7 +76,7 @@ class _CameraAppState extends State<CameraApp> {
     super.initState();
 
     controller = CameraController(
-      cameras.last,
+      cameras.first,
       ResolutionPreset.medium,
     );
 
@@ -116,8 +116,10 @@ class _CameraAppState extends State<CameraApp> {
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
     if (!isprocessing) {
       isprocessing = true;
-      img.Image? imago = ImageUtils.convertYUV420ToImage(image);
+      img.Image? imago = ImageUtils2.convertCameraImage(image);
       TensorImage imagine = processor(TensorImage.fromImage(imago));
+      //ImageUtils2.saveImage(imagine.image, counter);
+
       try {
         boxes = await compute(processCameraFrame, [
           imagine,
@@ -138,7 +140,7 @@ class _CameraAppState extends State<CameraApp> {
 
   Future<tfl.Interpreter> loadModel() async {
     return tfl.Interpreter.fromAsset(
-      'model.tflite',
+      'AssetsFolder\\detect.tflite',
       //options: tfl.InterpreterOptions()..threads = 4,
     );
   }
@@ -273,7 +275,7 @@ class _CameraAppState extends State<CameraApp> {
   }
 }
 
-class ImageUtils {
+/*class ImageUtils {
   /// Converts a [CameraImage] in YUV420 format to [imageLib.Image] in RGB format
   static img.Image convertYUV420ToImage(CameraImage cameraImage) {
     final int width = cameraImage.width;
@@ -314,10 +316,138 @@ class ImageUtils {
         ((g << 8) & 0xff00) |
         (r & 0xff);
   }
+}*/
+
+class ImageUtils2 {
+  static img.Image convertCameraImage(CameraImage cameraImage) {
+    if (cameraImage.format.group == ImageFormatGroup.yuv420) {
+      return rgbToImage(
+          cameraImage.width, cameraImage.height, Gyuv420ToRgb(cameraImage));
+    } else if (cameraImage.format.group == ImageFormatGroup.bgra8888) {
+      return convertBGRA8888ToImage(cameraImage);
+    } else {
+      return img.Image.empty();
+    }
+  }
+
+  static List<int> Gyuv420ToRgb(CameraImage image) {
+    final int width = image.width;
+    final int height = image.height;
+
+    final int size = width * height;
+
+    final List<int> yData = image.planes[0].bytes;
+    final List<int> uData = image.planes[1].bytes;
+    final List<int> vData = image.planes[2].bytes;
+
+    final int uvRowStride = image.planes[1].bytesPerRow;
+    final int uvPixelStride = image.planes[1].bytesPerPixel!.toInt();
+
+    final List<int> rgbData = List<int>.filled(size * 3, 0);
+
+    for (int j = 0; j < height; j++) {
+      for (int i = 0; i < width; i++) {
+        final int yPos = j * width + i;
+        final int uvPos = (j ~/ 2) * uvRowStride + (i ~/ 2) * uvPixelStride;
+
+        final int y = yData[yPos];
+        final int u = uData[uvPos] - 128;
+        final int v = vData[uvPos] - 128;
+
+        int r = (y + 1.402 * v).round().clamp(0, 255);
+        int g = (y - 0.344136 * u - 0.714136 * v).round().clamp(0, 255);
+        int b = (y + 1.772 * u).round().clamp(0, 255);
+
+        final int pos = yPos * 3;
+        rgbData[pos] = r;
+        rgbData[pos + 1] = g;
+        rgbData[pos + 2] = b;
+      }
+    }
+
+    return rgbData;
+  }
+
+  static img.Image rgbToImage(int width, int height, List<int> rgbData) {
+    img.Image image = img.Image(width: width, height: height);
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        int pos = (y * width + x) * 3;
+        int r = rgbData[pos];
+        int g = rgbData[pos + 1];
+        int b = rgbData[pos + 2];
+        image.setPixelRgba(x, y, r, g, b, 255);
+      }
+    }
+    return img.copyRotate(image, angle: 90);
+  }
+
+  static img.Image convertBGRA8888ToImage(CameraImage cameraImage) {
+    img.Image imag = img.Image.fromBytes(
+        width: cameraImage.width,
+        height: cameraImage.height,
+        bytes: cameraImage.planes[0].bytes.buffer);
+    return imag;
+  }
+
+  /// Converts a [CameraImage] in YUV420 format to [imageLib.Image] in RGB format
+  static img.Image convertYUV420ToImage(CameraImage cameraImage) {
+    final int width = cameraImage.width;
+    final int height = cameraImage.height;
+
+    final int uvRowStride = cameraImage.planes[1].bytesPerRow;
+    final int uvPixelStride = cameraImage.planes[1].bytesPerPixel!.toInt();
+
+    //final image = img.Image(width, height);
+    final image = img.Image(width: width, height: height);
+
+    for (int w = 0; w < width; w++) {
+      for (int h = 0; h < height; h++) {
+        final int uvIndex =
+            uvPixelStride * (w / 2).floor() + uvRowStride * (h / 2).floor();
+        final int index = h * width + w;
+
+        final y = cameraImage.planes[0].bytes[index];
+        final u = cameraImage.planes[1].bytes[uvIndex];
+        final v = cameraImage.planes[2].bytes[uvIndex];
+
+        image.setPixelIndex(w, h, ImageUtils2.yuv2rgb(y, u, v));
+      }
+    }
+    return image;
+  }
+
+  /// Convert a single YUV pixel to RGB
+  static int yuv2rgb(int y, int u, int v) {
+    // Convert yuv pixel to rgb
+    int r = (y + v * 1436 / 1024 - 179).round();
+    int g = (y - u * 46549 / 131072 + 44 - v * 93604 / 131072 + 91).round();
+    int b = (y + u * 1814 / 1024 - 227).round();
+
+    // Clipping RGB values to be inside boundaries [ 0 , 255 ]
+    r = r.clamp(0, 255);
+    g = g.clamp(0, 255);
+    b = b.clamp(0, 255);
+
+    return 0xff000000 |
+        ((b << 16) & 0xff0000) |
+        ((g << 8) & 0xff00) |
+        (r & 0xff);
+  }
+
+  static void saveImage(img.Image image, [int i = 0]) async {
+    List<int> jpeg = img.JpegEncoder().encode(image);
+    final appDir = await getTemporaryDirectory();
+    final appPath = appDir.path;
+    //final fileOnDevice = File('$appPath/out$i.jpg');
+    ImageGallerySaver.saveImage(Uint8List.fromList(jpeg));
+    //await fileOnDevice.writeAsBytes(jpeg, flush: true);
+    print('Saved $appPath/out$i.jpg');
+  }
 }
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
-  print('weve come too far to give up now');
+  //print('weve come too far to give up now');
   TensorImage inputImage = l[0];
   late tfl.Interpreter? interpreter;
   var _outputShapes = l[4];
@@ -361,8 +491,11 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     // Label string
     var labelIndex = outputClasses.getIntValue(i) + 1;
     var label = labels.elementAt(labelIndex);
+    String st = "???";
+    print(label);
 
-    if (score > 0.4) {
+    if (score > 0.4 && label == st) {
+      print(score);
       Rect transformedRect =
           imageProcessor!.inverseTransformRect(locations[i], height, width);
 

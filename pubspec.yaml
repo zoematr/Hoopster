@@ -78,9 +78,9 @@ flutter_icons:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - assets/model.tflite
-    - assets/detect.tflite
-    - assets/BasketButton.png
+    - AssetsFolder\model.tflite
+    - AssetsFolder\detect.tflite
+    - AssetsFolder\BasketButton.png
   
 
   fonts: 
