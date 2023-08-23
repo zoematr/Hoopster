@@ -24,6 +24,7 @@ import 'home_screen.dart';
 import 'output_processing.dart';
 
 late int padSize;
+late List<String> labels;
 int i = 0;
 List<BoundingBox> boxes = [];
 ImageProcessor? imageProcessor = null;
@@ -81,6 +82,8 @@ class _CameraAppState extends State<CameraApp> {
     );
 
     _initializeControllerFuture = controller.initialize().then((_) async {
+      labels = await loadLabelsFromFile();
+      print(labels.length);
       var address = widget.interpreter.address;
       var outputTensors = widget.interpreter.getOutputTensors();
       outputTensors.forEach((tensor) {
@@ -140,7 +143,7 @@ class _CameraAppState extends State<CameraApp> {
 
   Future<tfl.Interpreter> loadModel() async {
     return tfl.Interpreter.fromAsset(
-      'AssetsFolder\\detect.tflite',
+      'detect.tflite',
       //options: tfl.InterpreterOptions()..threads = 4,
     );
   }
@@ -487,14 +490,12 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
 
   for (int i = 0; i < 10; i++) {
     var score = outputScores.getDoubleValue(i);
-
     // Label string
-    var labelIndex = outputClasses.getIntValue(i) + 1;
-    var label = labels.elementAt(labelIndex);
-    String st = "???";
-    print(label);
-
-    if (score > 0.4 && label == st) {
+    print(score);
+    if (score > 0.4) {
+      var labelIndex = outputClasses.getIntValue(i) + 1;
+      String label = labels.elementAt(labelIndex);
+      print(label);
       print(score);
       Rect transformedRect =
           imageProcessor!.inverseTransformRect(locations[i], height, width);
@@ -678,14 +679,14 @@ double fromDateTodouble(DateTime d) {
 }
 
 Future<List<String>> loadLabelsFromFile() async {
-  String filePath = 'assets/labelmap.txt';
+  String assetPath = 'assets/labelmap.txt';
 
   try {
-    File file = File(filePath);
-    List<String> labels = await file.readAsLines();
+    String contents = await rootBundle.loadString(assetPath);
+    List<String> labels = contents.split('\n');
     return labels;
   } catch (e) {
-    print('didnt work because: $e');
+    print('didn\'t work because: $e');
     return [];
   }
 }
