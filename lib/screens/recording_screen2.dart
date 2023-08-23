@@ -489,12 +489,11 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     var score = outputScores.getDoubleValue(i);
 
     // Label string
-    var labelIndex = outputClasses.getIntValue(i) + 1;
+    var labelIndex = outputClasses.getIntValue(i);
     var label = labels.elementAt(labelIndex);
-    String st = "???";
-    print(label);
 
-    if (score > 0.4 && label == st) {
+    if (score > 0.4) {
+      print(label);
       print(score);
       Rect transformedRect =
           imageProcessor!.inverseTransformRect(locations[i], height, width);
