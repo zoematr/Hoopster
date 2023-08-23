@@ -12,9 +12,8 @@ import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/ShotChecker.dart';
 import 'package:hoopster/screens/recording_screen2.dart';
 import 'package:hoopster/statsObjects.dart';
+import 'package:image/image.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
-import 'package:tflite_flutter/tflite_flutter.dart';
-import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -26,7 +25,6 @@ import 'output_processing.dart';
 late int padSize;
 int i = 0;
 List<BoundingBox> boxes = [];
-ImageProcessor? imageProcessor = null;
 final _outputShapes = [];
 late CameraImage _cameraImage;
 bool isprocessing = false;
@@ -117,12 +115,11 @@ class _CameraAppState extends State<CameraApp> {
     if (!isprocessing) {
       isprocessing = true;
       img.Image? imago = ImageUtils2.convertCameraImage(image);
-      TensorImage imagine = processor(TensorImage.fromImage(imago));
       //ImageUtils2.saveImage(imagine.image, counter);
 
       try {
         boxes = await compute(processCameraFrame, [
-          imagine,
+          imago,
           address,
           height,
           width,
@@ -448,7 +445,7 @@ class ImageUtils2 {
 
 List<BoundingBox> processCameraFrame(List<dynamic> l) {
   //print('weve come too far to give up now');
-  TensorImage inputImage = l[0];
+  img.Image inputImage = l[0];
   late tfl.Interpreter? interpreter;
   var _outputShapes = l[4];
   int height = l[2];
@@ -462,41 +459,85 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
     print('Error loading model: $e');
   }
 
-  TensorBuffer? outputLocations = TensorBufferFloat(_outputShapes[0]);
-  TensorBuffer? outputClasses = TensorBufferFloat(_outputShapes[1]);
-  TensorBuffer? outputScores = TensorBufferFloat(_outputShapes[2]);
-  TensorBuffer? numLocations = TensorBufferFloat(_outputShapes[3]);
-  Map<int, Object>? outputs = {
-    0: outputLocations.buffer,
-    1: outputClasses.buffer,
-    2: outputScores.buffer,
-    3: numLocations.buffer,
-  };
+  final imageInput = img.copyResize(
+      inputImage!,
+      width: width,
+      height: height,
+    );
 
-  interpreter!.runForMultipleInputs([inputImage.buffer], outputs);
-  List<Rect>? locations = BoundingBoxUtils.convert(
-    tensor: outputLocations,
-    valueIndex: [1, 0, 3, 2],
-    boundingBoxAxis: 2,
-    boundingBoxType: BoundingBoxType.BOUNDARIES,
-    coordinateType: CoordinateType.RATIO,
-    height: INPUT_SIZE,
-    width: INPUT_SIZE,
-  );
-  List<BoundingBox>? boxes = [];
+    // Creating matrix representation, [300, 300, 3]
+    final imageMatrix = List.generate(
+      imageInput.height,
+      (y) => List.generate(
+        imageInput.width,
+        (x) {
+          final pixel = imageInput.getPixel(x, y);
+          return [pixel.r, pixel.g, pixel.b];
+        },
+      ),
+    );
 
-  for (int i = 0; i < 10; i++) {
-    var score = outputScores.getDoubleValue(i);
 
-    // Label string
-    var labelIndex = outputClasses.getIntValue(i);
-    var label = labels.elementAt(labelIndex);
+    final output = _runInference(imageMatrix);
 
-    if (score > 0.4) {
-      print(label);
-      print(score);
-      Rect transformedRect =
-          imageProcessor!.inverseTransformRect(locations[i], height, width);
+    // Location
+    final locationsRaw = output.first.first as List<List<double>>;
+
+    final List<Rect> locations = locationsRaw
+        .map((list) => list.map((value) => (value * mlModelInputSize)).toList())
+        .map((rect) => Rect.fromLTRB(rect[1], rect[0], rect[3], rect[2]))
+        .toList();
+
+    // Classes
+    final classesRaw = output.elementAt(1).first as List<double>;
+    final classes = classesRaw.map((value) => value.toInt()).toList();
+
+    // Scores
+    final scores = output.elementAt(2).first as List<double>;
+
+    // Number of detections
+    final numberOfDetectionsRaw = output.last.first as double;
+    final numberOfDetections = numberOfDetectionsRaw.toInt();
+
+
+
+    /// Generate recognitions
+    List<BoundingBox> recognitions = [];
+    for (int i = 0; i < numberOfDetections; i++) {
+      // Prediction score
+      var score = scores[i];
+      // Label string
+      var label = classification[i];
+
+
+    }
+
+
+
+  }
+
+  /// Object detection main function
+  List<List<Object>> _runInference(
+    List<List<List<num>>> imageMatrix,
+  ) {
+    // Set input tensor [1, 300, 300, 3]
+    final input = [imageMatrix];
+
+    // Set output tensor
+    // Locations: [1, 10, 4]
+    // Classes: [1, 10],
+    // Scores: [1, 10],
+    // Number of detections: [1]
+    final output = {
+      0: [List<List<num>>.filled(10, List<num>.filled(4, 0))],
+      1: [List<num>.filled(10, 0)],
+      2: [List<num>.filled(10, 0)],
+      3: [0.0],
+    };
+
+    _interpreter!.runForMultipleInputs([input], output);
+    return output.values.toList();
+  }
 
       boxes.add(
         BoundingBox(
