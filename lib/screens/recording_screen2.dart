@@ -267,7 +267,7 @@ class _CameraAppState extends State<CameraApp> {
           ],
         ),
       ),
-      CustomPaint(painter: RectanglePainter(boxes)),
+      CustomPaint(painter: RectanglePainter(boxes!)),
     ]));
   }
 }
@@ -477,7 +477,7 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
     ),
   );
 
-  final output = _runInference(imageMatrix);
+  final output = _runInference(imageMatrix, interpreter!);
 
   // Location
   final locationsRaw = output.first.first as List<List<double>>;
@@ -487,18 +487,13 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
       .map((rect) => Rect.fromLTRB(rect[1], rect[0], rect[3], rect[2]))
       .toList();
 
-  // Classes
   final classesRaw = output.elementAt(1).first as List<double>;
   final classes = classesRaw.map((value) => value.toInt()).toList();
-
-  // Scores
   final scores = output.elementAt(2).first as List<double>;
 
-  // Number of detections
   final numberOfDetectionsRaw = output.last.first as double;
   final numberOfDetections = numberOfDetectionsRaw.toInt();
 
-  /// Generate recognitions
   List<BoundingBox> recognitions = [];
   for (int i = 0; i < numberOfDetections; i++) {
     // Prediction score
@@ -510,8 +505,7 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
 
 /// Object detection main function
 List<List<Object>> _runInference(
-  List<List<List<num>>> imageMatrix,
-) {
+    List<List<List<num>>> imageMatrix, tfl.Interpreter interpreter) {
   // Set input tensor [1, 300, 300, 3]
   final input = [imageMatrix];
 
@@ -529,13 +523,6 @@ List<List<Object>> _runInference(
 
   interpreter!.runForMultipleInputs([input], output);
   return output.values.toList();
-}
-
-img.Image fromFltoIM(Float32List F32l) {
-  img.Image im =
-      img.Image.fromBytes(width: 416, height: 416, bytes: F32l.buffer);
-
-  return im;
 }
 
 class RectanglePainter extends CustomPainter {
