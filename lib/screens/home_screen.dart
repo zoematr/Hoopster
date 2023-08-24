@@ -60,6 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
   _HomeScreenState(/*this.firstCamera*/);
   @override
   Widget build(BuildContext context) {
+    tfl.InterpreterOptions interpreterOptions = tfl.InterpreterOptions();
+    interpreterOptions.addDelegate(tfl.XNNPackDelegate());
     w = MediaQuery.of(context).size.width;
     h = MediaQuery.of(context).size.height;
     return Scaffold(
@@ -72,7 +74,8 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Color.fromARGB(255, 0, 0, 0),
       ),
       body: FutureBuilder(
-        future: tfl.Interpreter.fromAsset('newmodel.tflite'),
+        future: tfl.Interpreter.fromAsset('newmodel.tflite',
+            options: interpreterOptions..threads = 4),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             // Display a loading indicator while waiting for the async operation to complete

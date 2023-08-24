@@ -121,9 +121,6 @@ class _CameraAppState extends State<CameraApp> {
         boxes = await compute(processCameraFrame, [
           imago,
           address,
-          height,
-          width,
-          _outputShapes,
         ]);
       } catch (e) {
         isprocessing = false;
@@ -446,21 +443,16 @@ class ImageUtils2 {
 List<BoundingBox>? processCameraFrame(List<dynamic> l) {
   //print('weve come too far to give up now');
   img.Image inputImage = l[0];
-  late tfl.Interpreter? interpreter;
-  var _outputShapes = l[4];
-  int height = l[2];
-  int width = l[3];
+  late tfl.Interpreter interpreter;
 
   try {
-    interpreter = tfl.Interpreter.fromAddress(l[1]
-        //options: tfl.InterpreterOptions()..threads = 4,
-        );
+    interpreter = tfl.Interpreter.fromAddress(l[1]);
   } catch (e) {
     print('Error loading model: $e');
   }
 
   final imageInput = img.copyResize(
-    inputImage!,
+    inputImage,
     width: 300,
     height: 300,
   );
@@ -477,7 +469,7 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
     ),
   );
 
-  final output = _runInference(imageMatrix, interpreter!);
+  final output = _runInference(imageMatrix, interpreter);
 
   // Location
   final locationsRaw = output.first.first as List<List<double>>;
@@ -493,13 +485,18 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
 
   final numberOfDetectionsRaw = output.last.first as double;
   final numberOfDetections = numberOfDetectionsRaw.toInt();
+  print(numberOfDetections);
 
   List<BoundingBox> recognitions = [];
   for (int i = 0; i < numberOfDetections; i++) {
     // Prediction score
     var score = scores[i];
     // Label string
-    var label = labels![classes[i]];
+    var label = labels[classes[i]];
+    if (score > 0.0) {
+      print(label);
+      print(score);
+    }
   }
 }
 
@@ -520,8 +517,13 @@ List<List<Object>> _runInference(
     2: [List<num>.filled(10, 0)],
     3: [0.0],
   };
+  try {
+    interpreter.runForMultipleInputs([input], output);
+    print('runs interpreter');
+  } catch (e) {
+    print('Error during inference: $e');
+  }
 
-  interpreter!.runForMultipleInputs([input], output);
   return output.values.toList();
 }
 
