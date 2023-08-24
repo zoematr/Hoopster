@@ -24,7 +24,7 @@ import 'output_processing.dart';
 
 late int padSize;
 int i = 0;
-List<BoundingBox> boxes = [];
+List<BoundingBox>? boxes = [];
 final _outputShapes = [];
 late CameraImage _cameraImage;
 bool isprocessing = false;
@@ -443,7 +443,7 @@ class ImageUtils2 {
   }
 }
 
-List<BoundingBox> processCameraFrame(List<dynamic> l) {
+List<BoundingBox>? processCameraFrame(List<dynamic> l) {
   //print('weve come too far to give up now');
   img.Image inputImage = l[0];
   late tfl.Interpreter? interpreter;
@@ -460,104 +460,75 @@ List<BoundingBox> processCameraFrame(List<dynamic> l) {
   }
 
   final imageInput = img.copyResize(
-      inputImage!,
-      width: width,
-      height: height,
-    );
+    inputImage!,
+    width: 300,
+    height: 300,
+  );
 
-    // Creating matrix representation, [300, 300, 3]
-    final imageMatrix = List.generate(
-      imageInput.height,
-      (y) => List.generate(
-        imageInput.width,
-        (x) {
-          final pixel = imageInput.getPixel(x, y);
-          return [pixel.r, pixel.g, pixel.b];
-        },
-      ),
-    );
+  // Creating matrix representation, [300, 300, 3]
+  final imageMatrix = List.generate(
+    imageInput.height,
+    (y) => List.generate(
+      imageInput.width,
+      (x) {
+        final pixel = imageInput.getPixel(x, y);
+        return [pixel.r, pixel.g, pixel.b];
+      },
+    ),
+  );
 
+  final output = _runInference(imageMatrix);
 
-    final output = _runInference(imageMatrix);
+  // Location
+  final locationsRaw = output.first.first as List<List<double>>;
 
-    // Location
-    final locationsRaw = output.first.first as List<List<double>>;
+  final List<Rect> locations = locationsRaw
+      .map((list) => list.map((value) => (value * 300)).toList())
+      .map((rect) => Rect.fromLTRB(rect[1], rect[0], rect[3], rect[2]))
+      .toList();
 
-    final List<Rect> locations = locationsRaw
-        .map((list) => list.map((value) => (value * mlModelInputSize)).toList())
-        .map((rect) => Rect.fromLTRB(rect[1], rect[0], rect[3], rect[2]))
-        .toList();
+  // Classes
+  final classesRaw = output.elementAt(1).first as List<double>;
+  final classes = classesRaw.map((value) => value.toInt()).toList();
 
-    // Classes
-    final classesRaw = output.elementAt(1).first as List<double>;
-    final classes = classesRaw.map((value) => value.toInt()).toList();
+  // Scores
+  final scores = output.elementAt(2).first as List<double>;
 
-    // Scores
-    final scores = output.elementAt(2).first as List<double>;
+  // Number of detections
+  final numberOfDetectionsRaw = output.last.first as double;
+  final numberOfDetections = numberOfDetectionsRaw.toInt();
 
-    // Number of detections
-    final numberOfDetectionsRaw = output.last.first as double;
-    final numberOfDetections = numberOfDetectionsRaw.toInt();
-
-
-
-    /// Generate recognitions
-    List<BoundingBox> recognitions = [];
-    for (int i = 0; i < numberOfDetections; i++) {
-      // Prediction score
-      var score = scores[i];
-      // Label string
-      var label = classification[i];
-
-
-    }
-
-
-
+  /// Generate recognitions
+  List<BoundingBox> recognitions = [];
+  for (int i = 0; i < numberOfDetections; i++) {
+    // Prediction score
+    var score = scores[i];
+    // Label string
+    var label = labels![classes[i]];
   }
+}
 
-  /// Object detection main function
-  List<List<Object>> _runInference(
-    List<List<List<num>>> imageMatrix,
-  ) {
-    // Set input tensor [1, 300, 300, 3]
-    final input = [imageMatrix];
+/// Object detection main function
+List<List<Object>> _runInference(
+  List<List<List<num>>> imageMatrix,
+) {
+  // Set input tensor [1, 300, 300, 3]
+  final input = [imageMatrix];
 
-    // Set output tensor
-    // Locations: [1, 10, 4]
-    // Classes: [1, 10],
-    // Scores: [1, 10],
-    // Number of detections: [1]
-    final output = {
-      0: [List<List<num>>.filled(10, List<num>.filled(4, 0))],
-      1: [List<num>.filled(10, 0)],
-      2: [List<num>.filled(10, 0)],
-      3: [0.0],
-    };
+  // Set output tensor
+  // Locations: [1, 10, 4]
+  // Classes: [1, 10],
+  // Scores: [1, 10],
+  // Number of detections: [1]
+  final output = {
+    0: [List<List<num>>.filled(10, List<num>.filled(4, 0))],
+    1: [List<num>.filled(10, 0)],
+    2: [List<num>.filled(10, 0)],
+    3: [0.0],
+  };
 
-    _interpreter!.runForMultipleInputs([input], output);
-    return output.values.toList();
-  }
-
-      boxes.add(
-        BoundingBox(
-            x: transformedRect.topLeft.dx,
-            y: transformedRect.topLeft.dy,
-            width: transformedRect.width,
-            height: transformedRect.height,
-            confidence: score,
-            classId: labelIndex),
-      );
-    }
-  }
-
-  _outputShapes = null;
-
-  locations = null;
-
-  outputs = null;
-  interpreter = null;
-  return boxes;
+  interpreter!.runForMultipleInputs([input], output);
+  return output.values.toList();
 }
 
 img.Image fromFltoIM(Float32List F32l) {
@@ -591,21 +562,6 @@ class RectanglePainter extends CustomPainter {
     // Repaint if the old boxes are not the same as the new ones
     return oldDelegate.boxes != this.boxes;
   }
-}
-
-TensorImage processor(TensorImage inputImage) {
-  if (imageProcessor == null) {
-    height = inputImage.height;
-    width = inputImage.width;
-    int padSize = max(height, width);
-    imageProcessor = ImageProcessorBuilder()
-        .add(ResizeWithCropOrPadOp(padSize, padSize))
-        .add(ResizeOp(INPUT_SIZE, INPUT_SIZE, ResizeMethod.BILINEAR))
-        .build();
-  }
-
-  inputImage = imageProcessor!.process(inputImage);
-  return inputImage;
 }
 
 /*void NormalizeBasketCoor(List<List<double>> coor) {
