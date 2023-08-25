@@ -44,7 +44,7 @@ Widget globalUpdate() {
   );
 }
 
-String basketButton = "assets/BasketButton.png";
+String basketButton = "AssetsFolder\\BasketButton.png";
 Widget lView = globalUpdate();
 
 class HomeScreen extends StatefulWidget {
@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     tfl.InterpreterOptions interpreterOptions = tfl.InterpreterOptions();
-    interpreterOptions.addDelegate(tfl.XNNPackDelegate());
+    //interpreterOptions.addDelegate(tfl.XNNPackDelegate());
     w = MediaQuery.of(context).size.width;
     h = MediaQuery.of(context).size.height;
     return Scaffold(
@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Color.fromARGB(255, 0, 0, 0),
       ),
       body: FutureBuilder(
-        future: tfl.Interpreter.fromAsset('newmodel.tflite',
+        future: tfl.Interpreter.fromAsset('AssetsFolder\\newmodel.tflite',
             options: interpreterOptions..threads = 4),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

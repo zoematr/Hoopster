@@ -70,7 +70,7 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/appIcon.PNG"
+  image_path: "AssetsFolder\\appIcon.PNG"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -78,10 +78,10 @@ flutter_icons:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - assets/newmodel.tflite
-    - assets/model.tflite
-    - assets/detect.tflite
-    - assets/BasketButton.png
+    - AssetsFolder\newmodel.tflite
+    - AssetsFolder\model.tflite
+    - AssetsFolder\detect.tflite
+    - AssetsFolder\BasketButton.png
   
 
   fonts: 

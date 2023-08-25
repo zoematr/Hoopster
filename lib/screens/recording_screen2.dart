@@ -114,7 +114,8 @@ class _CameraAppState extends State<CameraApp> {
   Future<void> _cameraFrameProcessing(CameraImage image, address) async {
     if (!isprocessing) {
       isprocessing = true;
-      img.Image? imago = ImageUtils2.convertCameraImage(image);
+      img.Image? imago = ImageUtils3.convertCameraImageToImage(image);
+
       //ImageUtils2.saveImage(imagine.image, counter);
 
       try {
@@ -123,6 +124,7 @@ class _CameraAppState extends State<CameraApp> {
           address,
         ]);
       } catch (e) {
+        print("here $e");
         isprocessing = false;
       }
 
@@ -264,7 +266,7 @@ class _CameraAppState extends State<CameraApp> {
           ],
         ),
       ),
-      CustomPaint(painter: RectanglePainter(boxes!)),
+      //CustomPaint(painter: RectanglePainter(boxes!)),
     ]));
   }
 }
@@ -312,6 +314,162 @@ class _CameraAppState extends State<CameraApp> {
   }
 }*/
 
+class ImageUtils3 {
+  static img.Image? convertCameraImageToImage(CameraImage cameraImage) {
+    img.Image image;
+
+    if (cameraImage.format.group == ImageFormatGroup.yuv420) {
+      image = convertYUV420ToImage(cameraImage);
+    } else if (cameraImage.format.group == ImageFormatGroup.bgra8888) {
+      image = convertBGRA8888ToImage(cameraImage);
+    } else if (cameraImage.format.group == ImageFormatGroup.jpeg) {
+      image = convertJPEGToImage(cameraImage);
+    } else if (cameraImage.format.group == ImageFormatGroup.nv21) {
+      image = convertNV21ToImage(cameraImage);
+    } else {
+      return null;
+    }
+
+    return image;
+  }
+
+  static img.Image convertYUV420ToImage(CameraImage cameraImage) {
+    final width = cameraImage.width;
+    final height = cameraImage.height;
+
+    final uvRowStride = cameraImage.planes[1].bytesPerRow;
+    final uvPixelStride = cameraImage.planes[1].bytesPerPixel!;
+
+    final yPlane = cameraImage.planes[0].bytes;
+    final uPlane = cameraImage.planes[1].bytes;
+    final vPlane = cameraImage.planes[2].bytes;
+
+    final image = img.Image(width: width, height: height);
+
+    var uvIndex = 0;
+
+    for (var y = 0; y < height; y++) {
+      var pY = y * width;
+      var pUV = uvIndex;
+
+      for (var x = 0; x < width; x++) {
+        final yValue = yPlane[pY];
+        final uValue = uPlane[pUV];
+        final vValue = vPlane[pUV];
+
+        final r = yValue + 1.402 * (vValue - 128);
+        final g =
+            yValue - 0.344136 * (uValue - 128) - 0.714136 * (vValue - 128);
+        final b = yValue + 1.772 * (uValue - 128);
+
+        image.setPixelRgba(x, y, r.toInt(), g.toInt(), b.toInt(), 255);
+
+        pY++;
+        if (x % 2 == 1 && uvPixelStride == 2) {
+          pUV += uvPixelStride;
+        } else if (x % 2 == 1 && uvPixelStride == 1) {
+          pUV++;
+        }
+      }
+
+      if (y % 2 == 1) {
+        uvIndex += uvRowStride;
+      }
+    }
+    return image;
+  }
+
+  static img.Image convertBGRA8888ToImage(CameraImage cameraImage) {
+    // Extract the bytes from the CameraImage
+    final bytes = cameraImage.planes[0].bytes;
+
+    // Create a new Image instance
+    final image = img.Image.fromBytes(
+      width: cameraImage.width,
+      height: cameraImage.height,
+      bytes: bytes.buffer,
+      order: img.ChannelOrder.rgba,
+    );
+
+    return image;
+  }
+
+  static img.Image convertJPEGToImage(CameraImage cameraImage) {
+    // Extract the bytes from the CameraImage
+    final bytes = cameraImage.planes[0].bytes;
+
+    // Create a new Image instance from the JPEG bytes
+    final image = img.decodeImage(bytes);
+
+    return image!;
+  }
+
+  static img.Image convertNV21ToImage(CameraImage cameraImage) {
+    // Extract the bytes from the CameraImage
+    final yuvBytes = cameraImage.planes[0].bytes;
+    final vuBytes = cameraImage.planes[1].bytes;
+
+    // Create a new Image instance
+    final image = img.Image(
+      width: cameraImage.width,
+      height: cameraImage.height,
+    );
+
+    // Convert NV21 to RGB
+    /* convertNV21ToRGB(
+    yuvBytes,
+    vuBytes,
+    cameraImage.width,
+    cameraImage.height,
+    image,
+  );*/
+
+    return image;
+  }
+
+  void convertNV21ToRGB(Uint8List yuvBytes, Uint8List vuBytes, int width,
+      int height, img.Image image) {
+    // Conversion logic from NV21 to RGB
+    // ...
+
+    // Example conversion logic using the `imageLib` package
+    // This is just a placeholder and may not be the most efficient method
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        final yIndex = y * width + x;
+        final uvIndex = (y ~/ 2) * (width ~/ 2) + (x ~/ 2);
+
+        final yValue = yuvBytes[yIndex];
+        final uValue = vuBytes[uvIndex * 2];
+        final vValue = vuBytes[uvIndex * 2 + 1];
+
+        // Convert YUV to RGB
+        final r = yValue + 1.402 * (vValue - 128);
+        final g =
+            yValue - 0.344136 * (uValue - 128) - 0.714136 * (vValue - 128);
+        final b = yValue + 1.772 * (uValue - 128);
+
+        // Set the RGB pixel values in the Image instance
+        image.setPixelRgba(x, y, r.toInt(), g.toInt(), b.toInt(), 255);
+      }
+    }
+  }
+
+  img.Image applyExifRotation(img.Image image, int exifRotation) {
+    if (exifRotation == 1) {
+      return img.copyRotate(image, angle: 0);
+    } else if (exifRotation == 3) {
+      return img.copyRotate(image, angle: 180);
+    } else if (exifRotation == 6) {
+      return img.copyRotate(image, angle: 90);
+    } else if (exifRotation == 8) {
+      return img.copyRotate(image, angle: 270);
+    }
+
+    return image;
+  }
+}
+
 class ImageUtils2 {
   static img.Image convertCameraImage(CameraImage cameraImage) {
     if (cameraImage.format.group == ImageFormatGroup.yuv420) {
@@ -348,9 +506,9 @@ class ImageUtils2 {
         final int u = uData[uvPos] - 128;
         final int v = vData[uvPos] - 128;
 
-        int r = (y + 1.402 * v).round().clamp(0, 255);
-        int g = (y - 0.344136 * u - 0.714136 * v).round().clamp(0, 255);
-        int b = (y + 1.772 * u).round().clamp(0, 255);
+        int r = (y + 1.402 * v).round().clamp(0, 255).toInt();
+        int g = (y - 0.344136 * u - 0.714136 * v).round().clamp(0, 255).toInt();
+        int b = (y + 1.772 * u).round().clamp(0, 255).toInt();
 
         final int pos = yPos * 3;
         rgbData[pos] = r;
@@ -464,7 +622,8 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
       imageInput.width,
       (x) {
         final pixel = imageInput.getPixel(x, y);
-        return [pixel.r, pixel.g, pixel.b];
+        return Uint8List.fromList(
+            [pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt()]);
       },
     ),
   );
@@ -472,11 +631,13 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
   final output = _runInference(imageMatrix, interpreter);
 
   // Location
-  final locationsRaw = output.first.first as List<List<double>>;
+  final locationsRaw = output.first.first as List<List<num>>;
+  print(locationsRaw);
 
   final List<Rect> locations = locationsRaw
       .map((list) => list.map((value) => (value * 300)).toList())
-      .map((rect) => Rect.fromLTRB(rect[1], rect[0], rect[3], rect[2]))
+      .map((rect) => Rect.fromLTRB(rect[1].toDouble(), rect[0].toDouble(),
+          rect[3].toDouble(), rect[2].toDouble()))
       .toList();
 
   final classesRaw = output.elementAt(1).first as List<double>;
@@ -486,17 +647,24 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
   final numberOfDetectionsRaw = output.last.first as double;
   final numberOfDetections = numberOfDetectionsRaw.toInt();
   print(numberOfDetections);
-
-  List<BoundingBox> recognitions = [];
-  for (int i = 0; i < numberOfDetections; i++) {
-    // Prediction score
-    var score = scores[i];
-    // Label string
-    var label = labels[classes[i]];
-    if (score > 0.0) {
-      print(label);
-      print(score);
+  try {
+    List<BoundingBox> recognitions = [];
+    for (int i = 0; i < numberOfDetections; i++) {
+      // Prediction score
+      var score = scores[i];
+      // Label string
+      
+      var label = labels[classes[i]];
+      if (score > 0.0) {
+        print(label);
+        print(score);
+      }
     }
+  } catch (e) {
+    print("here it fucking goes $e");
+    print("the index is $i");
+    print(scores[i]);
+    print(labels[i]);
   }
 }
 
@@ -521,6 +689,7 @@ List<List<Object>> _runInference(
     interpreter.runForMultipleInputs([input], output);
     print('runs interpreter');
   } catch (e) {
+    print(imageMatrix.first.first.first.runtimeType);
     print('Error during inference: $e');
   }
 
@@ -663,7 +832,7 @@ double fromDateTodouble(DateTime d) {
 }
 
 Future<List<String>> loadLabelsFromFile() async {
-  String filePath = 'assets/labelmap.txt';
+  String filePath = 'AssetsFolder\\labelmap.txt';
 
   try {
     File file = File(filePath);
