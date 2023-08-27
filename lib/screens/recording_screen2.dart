@@ -632,7 +632,7 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
 
   // Location
   final locationsRaw = output.first.first as List<List<num>>;
-  print(locationsRaw);
+  //print(locationsRaw);
 
   final List<Rect> locations = locationsRaw
       .map((list) => list.map((value) => (value * 300)).toList())
@@ -653,9 +653,9 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
       // Prediction score
       var score = scores[i];
       // Label string
-      
+
       var label = labels[classes[i]];
-      if (score > 0.0) {
+      if (score > 0.5) {
         print(label);
         print(score);
       }
@@ -689,7 +689,7 @@ List<List<Object>> _runInference(
     interpreter.runForMultipleInputs([input], output);
     print('runs interpreter');
   } catch (e) {
-    print(imageMatrix.first.first.first.runtimeType);
+    //print(imageMatrix.first.first.first.runtimeType);
     print('Error during inference: $e');
   }
 
@@ -710,7 +710,7 @@ class RectanglePainter extends CustomPainter {
     for (var box in boxes) {
       canvas.drawRect(
           Rect.fromLTWH(box.x, box.y, box.width, box.height), paint);
-      print(labels[box.classId]);
+      //print(labels[box.classId]);
     }
   }
 
