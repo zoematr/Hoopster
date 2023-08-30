@@ -9,6 +9,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:hoopster/statsObjects.dart';
+import 'package:hoopster/newStuff/screen_params.dart';
 
 //late List<CameraDescription> _cameras;
 double h = 0;
@@ -60,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
   _HomeScreenState(/*this.firstCamera*/);
   @override
   Widget build(BuildContext context) {
+    ScreenParams.screenSize = MediaQuery.sizeOf(context);
     tfl.InterpreterOptions interpreterOptions = tfl.InterpreterOptions();
     //interpreterOptions.addDelegate(tfl.XNNPackDelegate());
     w = MediaQuery.of(context).size.width;

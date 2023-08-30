@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:hoopster/Parabola.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/ShotChecker.dart';
+import 'package:hoopster/newStuff/detector_widget.dart';
 import 'package:hoopster/screens/recording_screen2.dart';
 import 'package:hoopster/statsObjects.dart';
 
@@ -181,7 +182,7 @@ class _CameraAppState extends State<CameraApp> {
         child: Column(
           children: [
             GestureDetector(
-              child: SizedBox(child: CameraPreview(controller)),
+              child: SizedBox(child: DetectorWidget() /*CameraPreview(controller)*/),
               onTapDown: (TapDownDetails details) {
                 var tapPosition = details.globalPosition;
                 double x = tapPosition.dx;
@@ -654,17 +655,17 @@ List<BoundingBox>? processCameraFrame(List<dynamic> l) {
       var score = scores[i];
       // Label string
 
-      var label = labels[classes[i]];
-      if (score > 0.5) {
-        print(label);
-        print(score);
+      var labela = labels[classes[i]];
+      if (score > 0.8 && labela=="sports ball") {
+        //print(label);
+        //print(score);
       }
     }
   } catch (e) {
-    print("here it fucking goes $e");
+   /* print("here it fucking goes $e");
     print("the index is $i");
     print(scores[i]);
-    print(labels[i]);
+    print(labels[i]);*/
   }
 }
 

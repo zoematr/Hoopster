@@ -49,6 +49,8 @@ dependencies:
   scidart: ^0.0.2-dev.12
   ml_linalg: ^13.11.31
   tflite_flutter: ^0.9.1
+  image_picker: ^1.0.0
+  exif: ^3.1.4
   path_provider: ^2.0.15
   tflite_flutter_helper:
     git:
@@ -82,6 +84,7 @@ flutter:
     - AssetsFolder\model.tflite
     - AssetsFolder\detect.tflite
     - AssetsFolder\BasketButton.png
+    - AssetsFolder\labelmap.txt
   
 
   fonts: 
