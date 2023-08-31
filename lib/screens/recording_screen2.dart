@@ -21,6 +21,8 @@ import '../main.dart';
 import 'home_screen.dart';
 import 'output_processing.dart';
 
+img.Image? _displayedImage;
+
 int i = 0;
 late CameraImage _cameraImage;
 bool isprocessing = false;
@@ -37,6 +39,17 @@ const int INPUT_SIZE = 416;
 int counterImage = 0;
 late double scalex;
 late double scaley;
+
+class ImageViewer extends StatelessWidget {
+  final img.Image image;
+
+  ImageViewer(this.image);
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.memory(Uint8List.fromList(img.encodePng(image)));
+  }
+}
 
 class CameraApp extends StatefulWidget {
   late double? w = null;
@@ -70,6 +83,8 @@ class _CameraAppState extends State<CameraApp> {
         await _cameraFrameProcessing(image, address);
         counter++;
         if (counter % 100 == 0) {
+          img.Image iimage = ImageUtils.convertYUV420ToImage(image);
+          //_displayedImage = iimage;
           _cameraImage = image;
           setState(() {});
           counterImage++;
@@ -141,80 +156,84 @@ class _CameraAppState extends State<CameraApp> {
         color: Color.fromARGB(255, 255, 0, 0),
       );
     }
-    return Scaffold(
-        body: Stack(children: [
-      Container(
-        child: Column(
-          children: [
-            SizedBox(child: CameraPreview(controller)),
-            Expanded(
-              child: Container(
-                color: Color.fromARGB(255, 93, 70, 94),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      Hit.toString(),
-                      style: TextStyle(
-                        fontFamily: "Dogica",
-                        fontSize: 60,
-                        color: Color.fromARGB(255, 0, 255, 0),
+    if (_displayedImage == null) {
+      return Scaffold(
+          body: Stack(children: [
+        Container(
+          child: Column(
+            children: [
+              SizedBox(child: CameraPreview(controller)),
+              Expanded(
+                child: Container(
+                  color: Color.fromARGB(255, 93, 70, 94),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        Hit.toString(),
+                        style: TextStyle(
+                          fontFamily: "Dogica",
+                          fontSize: 60,
+                          color: Color.fromARGB(255, 0, 255, 0),
+                        ),
                       ),
-                    ),
-                    Padding(
-                      padding:
-                          EdgeInsets.fromLTRB((w / 3) - 65, 0, (w / 3) - 65, 0),
-                      child: GestureDetector(
-                        child: Container(
-                          height: 80,
-                          width: 80,
-                          decoration: BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage(basketButton),
-                              fit: BoxFit.fill,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color.fromARGB(80, 0, 0, 0),
-                                spreadRadius: 1,
-                                blurRadius: 5,
-                              )
-                            ],
-                            color: Color.fromARGB(0, 255, 255, 255),
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(30),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                            (w / 3) - 65, 0, (w / 3) - 65, 0),
+                        child: GestureDetector(
+                          child: Container(
+                            height: 80,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: AssetImage(basketButton),
+                                fit: BoxFit.fill,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color.fromARGB(80, 0, 0, 0),
+                                  spreadRadius: 1,
+                                  blurRadius: 5,
+                                )
+                              ],
+                              color: Color.fromARGB(0, 255, 255, 255),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(30),
+                              ),
                             ),
                           ),
+                          onTap: () => {
+                            //capture(),
+                            setState(() {
+                              Miss++;
+                              Hit++;
+                            })
+                          },
+                          onDoubleTap: () => {
+                            //Session s= Session(DateTime.now(), 10, 7);
+                          },
                         ),
-                        onTap: () => {
-                          //capture(),
-                          setState(() {
-                            Miss++;
-                            Hit++;
-                          })
-                        },
-                        onDoubleTap: () => {
-                          //Session s= Session(DateTime.now(), 10, 7);
-                        },
                       ),
-                    ),
-                    Text(
-                      Miss.toString(),
-                      style: TextStyle(
-                        fontFamily: "Dogica",
-                        fontSize: 60,
-                        color: Color.fromARGB(255, 255, 0, 0),
+                      Text(
+                        Miss.toString(),
+                        style: TextStyle(
+                          fontFamily: "Dogica",
+                          fontSize: 60,
+                          color: Color.fromARGB(255, 255, 0, 0),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      CustomPaint(painter: RectanglePainter(boxes)),
-    ]));
+        CustomPaint(painter: RectanglePainter(boxes)),
+      ]));
+    } else {
+      return ImageViewer(_displayedImage!);
+    }
   }
 }
 
