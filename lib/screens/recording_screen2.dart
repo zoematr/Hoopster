@@ -80,12 +80,12 @@ class _CameraAppState extends State<CameraApp> {
         return;
       }
       controller.startImageStream((image) async {
-        await _cameraFrameProcessing(image, address);
+        //await _cameraFrameProcessing(image, address);
         counter++;
         if (counter % 100 == 0) {
           img.Image iimage = ImageUtils.convertYUV420ToImage(image);
-          //_displayedImage = iimage;
-          _cameraImage = image;
+          _displayedImage = iimage;
+          //_cameraImage = image;
           setState(() {});
           counterImage++;
         }
@@ -274,9 +274,9 @@ class ImageUtils {
     b = b.clamp(0, 255);
 
     return 0xff000000 |
-        ((b << 16) & 0xff0000) |
+        ((r << 16) & 0xff0000) |
         ((g << 8) & 0xff00) |
-        (r & 0xff);
+        (b & 0xff);
   }
 }
 
