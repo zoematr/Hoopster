@@ -11,7 +11,7 @@ import 'package:hoopster/Parabola.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/ShotChecker.dart';
 import 'package:hoopster/Merged/detect_logic.dart';
-import 'package:hoopster/screens/recording_screen2.dart';
+
 import 'package:hoopster/statsObjects.dart';
 
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;

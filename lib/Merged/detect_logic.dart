@@ -275,7 +275,7 @@ class _DetectorServer {
       
       String label = classification[i];
       bool eq = (label.substring(0,label.length-1)== "sports ball");
-      print("${label.substring(0,label.length-1)} and laptop are equal? ${eq}");
+      //print("${label.substring(0,label.length-1)} and laptop are equal? ${eq}");
 
       if (score > confidence /*&& eq*/) {
         recognitions.add(
@@ -385,7 +385,7 @@ class _TrackingWidgetState extends State<TrackingWidget>
 
   void _initStateAsync() async {
     
-    _initializeCamera();
+    _initCamera();
     
     Detector.start().then((instance) {
       setState(() {
@@ -401,7 +401,7 @@ class _TrackingWidgetState extends State<TrackingWidget>
   }
 
   
-  void _initializeCamera() async {
+  void _initCamera() async {
     cameras = await availableCameras();
     
     _cameraController = CameraController(cameras[0], ResolutionPreset.medium,

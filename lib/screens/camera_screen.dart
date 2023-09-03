@@ -21,11 +21,11 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import '../main.dart';
 import 'home_screen.dart';
-import 'output_processing.dart';
+
 
 late int padSize;
 int i = 0;
-List<BoundingBox>? boxes = [];
+
 final _outputShapes = [];
 late CameraImage _cameraImage;
 bool isprocessing = false;

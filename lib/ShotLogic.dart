@@ -21,7 +21,7 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import '../main.dart';
 
-import 'screens/output_processing.dart';
+
 
 
 
@@ -119,4 +119,15 @@ double fromDateTodouble(DateTime d) {
   String s = "$d.minutes.$d.millisecond";
   t = double.parse(s);
   return t;
+}
+class BoundingBox {
+  double x, y, width, height, confidence;
+  int classId;
+  BoundingBox(
+      {required this.x,
+      required this.y,
+      required this.width,
+      required this.height,
+      required this.confidence,
+      required this.classId});
 }
