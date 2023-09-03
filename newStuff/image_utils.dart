@@ -1,3 +1,4 @@
+/*
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -179,3 +180,4 @@ Future<void> saveImage(
   final fileOnDevice = File('$path/$name.jpg');
   await fileOnDevice.writeAsBytes(bytes, flush: true);
 }
+*/

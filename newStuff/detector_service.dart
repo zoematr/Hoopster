@@ -1,3 +1,4 @@
+/*
 // Copyright 2023 The Flutter team. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -321,10 +322,10 @@ class _DetectorServer {
       var score = scores[i];
       // Label string
       String label = classification[i];
-      bool eq = (label.substring(0,label.length-1)== "laptop");
-      //print("${label} and laptop are equal? ${eq}");
+      bool eq = (label.substring(0,label.length-1)== "sports ball");
+      print("${label.substring(0,label.length-1)} and laptop are equal? ${eq}");
 
-      if (score > confidence && eq) {
+      if (score > confidence /*&& eq*/) {
         recognitions.add(
           Recognition(i, label, score, locations[i]),
         );
@@ -389,3 +390,5 @@ bool theSame(String a, String b) {
   }
   return res;
 }
+
+*/

@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:hoopster/screens/recording_screen2.dart';
+import 'package:hoopster/screens/camera_screen.dart';
 
 bool ShotChecker(List<List<double>> hoop, List<List<double>> ball) {
   List<double> Hcorner1 = hoop[0];

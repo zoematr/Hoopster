@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:hoopster/newStuff/recognition.dart';
+import 'dart:math';
+import 'dart:ui';
+import 'package:hoopster/Merged/detect_logic.dart';
+
 
 /// Individual bounding box
-class BoxWidget extends StatelessWidget {
-  final Recognition result;
+class Boxes extends StatelessWidget {
+  final Identification result;
 
-  const BoxWidget({super.key, required this.result});
+  const Boxes({super.key, required this.result});
 
   @override
   Widget build(BuildContext context) {
@@ -43,4 +46,18 @@ class BoxWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+
+
+/// Singleton to record size related data
+class ScreenParams {
+  static late Size screenSize;
+  static late Size previewSize;
+
+  static double previewRatio = max(previewSize.height, previewSize.width) /
+      min(previewSize.height, previewSize.width);
+
+  static Size screenPreviewSize =
+      Size(screenSize.width, screenSize.width * previewRatio);
 }

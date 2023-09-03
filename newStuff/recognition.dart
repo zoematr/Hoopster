@@ -1,3 +1,4 @@
+/*
 import 'package:flutter/cupertino.dart';
 import 'package:hoopster/newStuff/screen_params.dart';
 
@@ -49,3 +50,4 @@ class Recognition {
     return 'Recognition(id: $id, label: $label, score: $score, location: $location)';
   }
 }
+*/

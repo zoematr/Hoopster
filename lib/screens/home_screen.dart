@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/main.dart';
-import 'package:hoopster/screens/recording_screen2.dart';
+import 'package:hoopster/screens/camera_screen.dart';
 import 'package:hoopster/screens/stats_screen.dart';
 import 'package:hoopster/screens/settings_screen.dart';
 import 'package:hoopster/screens/about_screen.dart';
@@ -9,7 +9,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:hoopster/statsObjects.dart';
-import 'package:hoopster/newStuff/screen_params.dart';
+import 'package:hoopster/Merged/around_box.dart';
 
 //late List<CameraDescription> _cameras;
 double h = 0;
@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: _buildButton(
                           context,
                           'Start Recording',
-                          CameraApp(interpreter: interpreter, w: w, h: h),
+                          CameraScreen(interpreter: interpreter, w: w, h: h),
                         ),
                       ),
                     ),
