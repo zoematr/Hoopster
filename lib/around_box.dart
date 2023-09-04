@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:ui';
-import 'package:hoopster/Merged/detect_logic.dart';
+import 'package:hoopster/detect_logic.dart';
 
 
 /// Individual bounding box

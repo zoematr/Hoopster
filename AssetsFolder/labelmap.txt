@@ -25,22 +25,22 @@ zebra
 giraffe
 ???
 backpack
-umbrella
+basketball
 ???
 ???
 handbag
 tie
 suitcase
-frisbee
+basketball
 skis
 snowboard
-sports ball
+basketball
 kite
 baseball bat
 baseball glove
 skateboard
 surfboard
-tennis racket
+basketball
 bottle
 ???
 wine glass
@@ -50,9 +50,9 @@ knife
 spoon
 bowl
 banana
-apple
+basketball
 sandwich
-orange
+basketball
 broccoli
 carrot
 hot dog
@@ -67,7 +67,7 @@ bed
 dining table
 ???
 ???
-toilet
+basketball
 ???
 tv
 laptop

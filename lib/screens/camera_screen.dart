@@ -10,7 +10,7 @@ import 'package:get/get.dart';
 import 'package:hoopster/Parabola.dart';
 import 'package:hoopster/PermanentStorage.dart';
 import 'package:hoopster/ShotChecker.dart';
-import 'package:hoopster/Merged/detect_logic.dart';
+import 'package:hoopster/detect_logic.dart';
 
 import 'package:hoopster/statsObjects.dart';
 

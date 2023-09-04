@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -8,25 +7,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_lib;
 
-
 import 'package:tflite_flutter/tflite_flutter.dart';
-
-
 
 import 'package:flutter/material.dart';
 
-import 'package:hoopster/Merged/around_box.dart';
-
+import 'package:hoopster/around_box.dart';
 
 import 'package:flutter/cupertino.dart';
 
-
 import 'dart:typed_data';
 
-
 import 'package:exif/exif.dart';
-
-
 
 enum _Codes {
   init,
@@ -36,14 +27,12 @@ enum _Codes {
   result,
 }
 
-
 class _Command {
   const _Command(this.code, {this.args});
 
   final _Codes code;
   final List<Object>? args;
 }
-
 
 class Detector {
   static const String _modelPath = 'AssetsFolder\\newmodel.tflite';
@@ -55,19 +44,16 @@ class Detector {
   late final Interpreter _interpreter;
   late final List<String> _labels;
 
-
   late final SendPort _sendPort;
 
   bool _isReady = false;
 
-
   final StreamController<Map<String, dynamic>> resultsStream =
       StreamController<Map<String, dynamic>>();
 
-  
   static Future<Detector> start() async {
     final ReceivePort receivePort = ReceivePort();
-  
+
     final Isolate isolate =
         await Isolate.spawn(_DetectorServer._run, receivePort.sendPort);
 
@@ -85,12 +71,8 @@ class Detector {
   static Future<Interpreter> _loadModel() async {
     final interpreterOptions = InterpreterOptions();
 
-  
-    if (Platform.isAndroid) {
-  
-    }
+    if (Platform.isAndroid) {}
 
-  
     if (Platform.isIOS) {
       interpreterOptions.addDelegate(GpuDelegate());
     }
@@ -105,19 +87,17 @@ class Detector {
     return (await rootBundle.loadString(_labelPath)).split('\n');
   }
 
-  
   void processFrame(CameraImage cameraImage) {
     if (_isReady) {
       _sendPort.send(_Command(_Codes.detect, args: [cameraImage]));
     }
   }
 
-  
   void _handleCommand(_Command command) {
     switch (command.code) {
       case _Codes.init:
         _sendPort = command.args?[0] as SendPort;
-        
+
         RootIsolateToken rootIsolateToken = RootIsolateToken.instance!;
         _sendPort.send(_Command(_Codes.init, args: [
           rootIsolateToken,
@@ -140,17 +120,13 @@ class Detector {
     }
   }
 
-  
   void stop() {
     _isolate.kill();
   }
 }
 
-
 class _DetectorServer {
-
   static const int mlModelInputSize = 300;
-
 
   static const double confidence = 0.5;
   Interpreter? _interpreter;
@@ -160,8 +136,6 @@ class _DetectorServer {
 
   final SendPort _sendPort;
 
-  
-
   static void _run(SendPort sendPort) {
     ReceivePort receivePort = ReceivePort();
     final _DetectorServer server = _DetectorServer(sendPort);
@@ -169,18 +143,16 @@ class _DetectorServer {
       final _Command command = message as _Command;
       await server._handleCommand(command);
     });
-   
+
     sendPort.send(_Command(_Codes.init, args: [receivePort.sendPort]));
   }
 
-  
   Future<void> _handleCommand(_Command command) async {
     switch (command.code) {
       case _Codes.init:
-       
         RootIsolateToken rootIsolateToken =
             command.args?[0] as RootIsolateToken;
-       
+
         BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
         _interpreter = Interpreter.fromAddress(command.args?[1] as int);
         _labels = command.args?[2] as List<String>;
@@ -217,7 +189,6 @@ class _DetectorServer {
 
     var preProcessStart = DateTime.now().millisecondsSinceEpoch;
 
-   
     final imageInput = image_lib.copyResize(
       image!,
       width: mlModelInputSize,
@@ -243,7 +214,6 @@ class _DetectorServer {
 
     final output = _runInference(imageMatrix);
 
-    
     final locationsRaw = output.first.first as List<List<double>>;
 
     final List<Rect> locations = locationsRaw
@@ -251,14 +221,11 @@ class _DetectorServer {
         .map((rect) => Rect.fromLTRB(rect[1], rect[0], rect[3], rect[2]))
         .toList();
 
-    
     final classesRaw = output.elementAt(1).first as List<double>;
     final classes = classesRaw.map((value) => value.toInt()).toList();
 
-    
     final scores = output.elementAt(2).first as List<double>;
 
-    
     final numberOfDetectionsRaw = output.last.first as double;
     final numberOfDetections = numberOfDetectionsRaw.toInt();
 
@@ -267,17 +234,16 @@ class _DetectorServer {
       classification.add(_labels![classes[i]]);
     }
 
-    
     List<Identification> recognitions = [];
     for (int i = 0; i < numberOfDetections; i++) {
-    
       var score = scores[i];
-      
+
       String label = classification[i];
-      bool eq = (label.substring(0,label.length-1)== "sports ball");
+      String AdjLabel = label.substring(0, label.length - 1);
       //print("${label.substring(0,label.length-1)} and laptop are equal? ${eq}");
 
-      if (score > confidence /*&& eq*/) {
+      if (score > confidence && AdjLabel == "basketball") {
+        print(AdjLabel);
         recognitions.add(
           Identification(i, label, score, locations[i]),
         );
@@ -302,14 +268,11 @@ class _DetectorServer {
     };
   }
 
-
   List<List<Object>> _runInference(
     List<List<List<num>>> imageMatrix,
   ) {
-    
     final input = [imageMatrix];
 
-    
     final output = {
       0: [List<List<num>>.filled(10, List<num>.filled(4, 0))],
       1: [List<num>.filled(10, 0)],
@@ -341,12 +304,7 @@ bool theSame(String a, String b) {
 
 //SPACE//////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
 class TrackingWidget extends StatefulWidget {
-  
-  
   const TrackingWidget({super.key});
 
   @override
@@ -355,38 +313,29 @@ class TrackingWidget extends StatefulWidget {
 
 class _TrackingWidgetState extends State<TrackingWidget>
     with WidgetsBindingObserver {
- 
   late List<CameraDescription> cameras;
-
 
   CameraController? _cameraController;
 
-  
   get _controller => _cameraController;
 
-  
-  
   Detector? _detector;
   StreamSubscription? _subscription;
 
-
   List<Identification>? results;
-
 
   Map<String, String>? stats;
 
   @override
   void initState() {
-  
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initStateAsync();
   }
 
   void _initStateAsync() async {
-    
     _initCamera();
-    
+
     Detector.start().then((instance) {
       setState(() {
         _detector = instance;
@@ -400,38 +349,33 @@ class _TrackingWidgetState extends State<TrackingWidget>
     });
   }
 
-  
   void _initCamera() async {
     cameras = await availableCameras();
-    
+
     _cameraController = CameraController(cameras[0], ResolutionPreset.medium,
         enableAudio: false)
       ..initialize().then((_) async {
-        
         await _controller.startImageStream(onLatestImageAvailable);
         setState(() {});
 
-       
         ScreenParams.previewSize = _controller.value.previewSize!;
       });
   }
 
   @override
   Widget build(BuildContext context) {
-
     if (_cameraController == null || !_controller.value.isInitialized) {
       return const SizedBox.shrink();
     }
 
     var aspect = 1 / _controller.value.aspectRatio;
 
-   return Stack(
+    return Stack(
       children: [
         AspectRatio(
           aspectRatio: aspect,
           child: CameraPreview(_controller),
         ),
-        
         AspectRatio(
           aspectRatio: aspect,
           child: boundBoxes(),
@@ -440,18 +384,13 @@ class _TrackingWidgetState extends State<TrackingWidget>
     );
   }
 
-
-
-  
   Widget boundBoxes() {
     if (results == null) {
       return const SizedBox.shrink();
     }
-    return Stack(
-        children: results!.map((box) => Boxes(result: box)).toList());
+    return Stack(children: results!.map((box) => Boxes(result: box)).toList());
   }
 
-  
   void onLatestImageAvailable(CameraImage cameraImage) async {
     _detector?.processFrame(cameraImage);
   }
@@ -483,21 +422,13 @@ class _TrackingWidgetState extends State<TrackingWidget>
 
 //SPACE//////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
 class Identification {
-
   final int _id;
 
-  
   final String _label;
 
-  
   final double _score;
 
- 
   final Rect _location;
 
   Identification(this._id, this._label, this._score, this._location);
@@ -510,7 +441,6 @@ class Identification {
 
   Rect get location => _location;
 
-  
   Rect get renderLocation {
     final double scaleX = ScreenParams.screenPreviewSize.width / 300;
     final double scaleY = ScreenParams.screenPreviewSize.height / 300;
@@ -529,9 +459,6 @@ class Identification {
 }
 
 //SPACE//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 Future<image_lib.Image?> convertCameraImageToImage(
     CameraImage cameraImage) async {
@@ -598,10 +525,8 @@ image_lib.Image convertYUV420ToImage(CameraImage cameraImage) {
 }
 
 image_lib.Image convertBGRA8888ToImage(CameraImage cameraImage) {
-  
   final bytes = cameraImage.planes[0].bytes;
 
-  
   final image = image_lib.Image.fromBytes(
     width: cameraImage.width,
     height: cameraImage.height,
@@ -613,27 +538,22 @@ image_lib.Image convertBGRA8888ToImage(CameraImage cameraImage) {
 }
 
 image_lib.Image convertJPEGToImage(CameraImage cameraImage) {
-  
   final bytes = cameraImage.planes[0].bytes;
 
-  
   final image = image_lib.decodeImage(bytes);
 
   return image!;
 }
 
 image_lib.Image convertNV21ToImage(CameraImage cameraImage) {
-  
   final yuvBytes = cameraImage.planes[0].bytes;
   final vuBytes = cameraImage.planes[1].bytes;
 
-  
   final image = image_lib.Image(
     width: cameraImage.width,
     height: cameraImage.height,
   );
 
-  
   convertNV21ToRGB(
     yuvBytes,
     vuBytes,
@@ -647,7 +567,6 @@ image_lib.Image convertNV21ToImage(CameraImage cameraImage) {
 
 void convertNV21ToRGB(Uint8List yuvBytes, Uint8List vuBytes, int width,
     int height, image_lib.Image image) {
-  
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {
       final yIndex = y * width + x;
@@ -657,18 +576,14 @@ void convertNV21ToRGB(Uint8List yuvBytes, Uint8List vuBytes, int width,
       final uValue = vuBytes[uvIndex * 2];
       final vValue = vuBytes[uvIndex * 2 + 1];
 
-      
       final r = yValue + 1.402 * (vValue - 128);
       final g = yValue - 0.344136 * (uValue - 128) - 0.714136 * (vValue - 128);
       final b = yValue + 1.772 * (uValue - 128);
 
-      
       image.setPixelRgba(x, y, r.toInt(), g.toInt(), b.toInt(), 255);
     }
   }
 }
-
-
 
 Future<int> getExifRotation(CameraImage cameraImage) async {
   final exifData = await readExifFromBytes(cameraImage.planes[0].bytes);

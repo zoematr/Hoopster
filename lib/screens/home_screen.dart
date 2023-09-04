@@ -9,7 +9,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:hoopster/statsObjects.dart';
-import 'package:hoopster/Merged/around_box.dart';
+import 'package:hoopster/around_box.dart';
 
 //late List<CameraDescription> _cameras;
 double h = 0;
