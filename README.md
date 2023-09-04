@@ -1,2 +1,4 @@
-![9B2387C5-815A-4C5F-ABFA-0D234091CACB](https://github.com/zoematr/Hoopster/assets/104142441/b3206fef-53da-4674-b4f4-f559deefbcf0)
-**how to run it**
+# Hoopster
+**Hoopster** is a AI based app for basketball free-throw shooting, that makes use of CV techniques to analyze your training sessions and keep track of your progress.
+You only need **a smartphone** and **a basketball** to start shooting with **Hoopster**. Internet connection is not required, as our app runs its model locally on your device!
+
