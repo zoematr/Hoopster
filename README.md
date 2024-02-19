@@ -4,6 +4,5 @@ You only need **a smartphone** and **a basketball** to start shooting with **Hoo
 
 *Internet connection is not required, as our app runs its model locally on your device!*
 
-## Guide to the Hoopster repository
 
 
